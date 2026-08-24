@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>無限層級樹狀清單（搜尋全爆開版）</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { max-width: 1300px; margin: 0 auto; padding: 15px; background-color: #f4f6f8; color: #333; }
+    h1 { text-align: center; font-size: 1.4rem; color: #2c3e50; margin: 10px 0 15px; }
+    
+    .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px; }
+    .search-box { width: 100%; padding: 12px 15px; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 8px; outline: none; transition: border-color 0.2s; }
+    .search-box:focus { border-color: #3498db; }
+    
+    .add-root-form { display: flex; gap: 8px; }
+    .add-root-form input { flex: 1; padding: 10px 12px; font-size: 15px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    
+    /* 備份按鈕區塊 */
+    .backup-bar { display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+    .backup-bar span { font-size: 13px; color: #64748b; font-weight: 600; }
+    .backup-btn-group { display: flex; gap: 8px; }
+    
+    /* 按鈕樣式 (針對手機觸控優化) */
+    button { cursor: pointer; padding: 6px 12px; border: none; border-radius: 6px; background: #3498db; color: white; font-size: 13px; font-weight: 500; -webkit-tap-highlight-color: transparent; }
+    button:active { opacity: 0.8; }
+    button.success { background: #2ecc71; }
+    button.danger { background: #e74c3c; }
+    button.secondary { background: #8e44ad; }
+    button.outline { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
+    
+    /* 樹狀結構與縮排 */
+    .tree-group { list-style: none; padding-left: 0; margin: 0; }
+    .node-content .tree-group { padding-left: 15px; border-left: 2px solid #e2e8f0; margin-top: 6px; }
+    
+    .tree-node { margin-bottom: 6px; }
+    .node-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    
+    .node-header { padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; background: #fff; user-select: none; }
+    .node-title-group { display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; }
+    .toggle-btn { background: none; color: #64748b; font-size: 12px; padding: 4px; border-radius: 4px; width: 24px; text-align: center; }
+    .node-title { font-weight: 600; font-size: 15px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .badge { font-size: 11px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 10px; font-weight: normal; }
+    
+    .node-actions { display: flex; gap: 4px; }
+    .node-actions button { padding: 4px 8px; font-size: 12px; }
+    
+    .node-content { display: none; padding: 6px 6px 6px 10px; background: #fafafa; border-top: 1px dashed #e2e8f0; }
+    .tree-node.open > .node-card > .node-content { display: block; }
+    .tree-node.open > .node-card > .node-header .toggle-btn { transform: rotate(90deg); color: #3498db; }
+    
+    .hidden { display: none !important; }
+    .empty-msg { text-align: center; color: #94a3b8; padding: 20px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <h1>無限層級樹狀清單</h1>
+
+  <!-- 備份與還原工具列 -->
+  <div class="card">
+    <div class="backup-bar">
+      <span>💾 資料安全備份</span>
+      <div class="backup-btn-group">
+        <button class="secondary" onclick="exportJSON()">匯出備份</button>
+        <button class="outline" onclick="triggerImport()">匯入還原</button>
+        <input type="file" id="importInput" accept=".json" style="display: none;" onchange="importJSON(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- 搜尋列 -->
+  <div class="card">
+    <input type="text" id="searchInput" class="search-box" placeholder="搜尋關鍵字（符合者將爆開所有子層）..." oninput="handleSearch()">
+  </div>
+
+  <!-- 新增最頂層分類 -->
+  <div class="card">
+    <div class="add-root-form">
+      <input type="text" id="rootInput" placeholder="新增主分類 (例如: 工作)">
+      <button class="success" onclick="addNode(null)">+ 新增</button>
+    </div>
+  </div>
+
+  <!-- 樹狀清單容器 -->
+  <div class="card">
+    <ul id="treeContainer" class="tree-group"></ul>
+  </div>
+
+<script>
+  const defaultData = [
+    {
+      id: '1', title: '工作', children: [
+        {
+          id: '1-1', title: '清潔', children: [
+            { id: '1-1-1', title: '陳大文', children: [] },
+            { id: '1-1-2', title: '李小姐', children: [] }
+          ]
+        },
+        { id: '1-2', title: 'IT 支援', children: [] }
+      ]
+    }
+  ];
+
+  let treeData = JSON.parse(localStorage.getItem('myInfiniteTreeData')) || defaultData;
+
+  function saveData() {
+    localStorage.setItem('myInfiniteTreeData', JSON.stringify(treeData));
+  }
+
+  function renderTree() {
+    const container = document.getElementById('treeContainer');
+    container.innerHTML = '';
+    if (treeData.length === 0) {
+      container.innerHTML = '<div class="empty-msg">目前沒有資料，請新增主分類。</div>';
+      return;
+    }
+    container.appendChild(createTreeDOM(treeData));
+  }
+
+  function createTreeDOM(nodes) {
+    const ul = document.createElement('ul');
+    ul.className = 'tree-group';
+
+    nodes.forEach(node => {
+      const li = document.createElement('li');
+      li.className = 'tree-node';
+      li.id = `node-${node.id}`;
+
+      const hasChildren = node.children && node.children.length > 0;
+      const childCount = hasChildren ? node.children.length : 0;
+
+      li.innerHTML = `
+        <div class="node-card">
+          <div class="node-header" onclick="toggleNode(event, '${node.id}')">
+            <div class="node-title-group">
+              <button class="toggle-btn">${hasChildren ? '▶' : '•'}</button>
+              <span class="node-title">${escapeHtml(node.title)}</span>
+              ${hasChildren ? `<span class="badge">${childCount}</span>` : ''}
+            </div>
+            <div class="node-actions" onclick="event.stopPropagation()">
+              <button class="success" onclick="addNode('${node.id}')">+子層</button>
+              <button onclick="editNode('${node.id}')">改</button>
+              <button class="danger" onclick="deleteNode('${node.id}')">刪</button>
+            </div>
+          </div>
+          <div class="node-content" id="content-${node.id}"></div>
+        </div>
+      `;
+
+      if (hasChildren) {
+        const contentDiv = li.querySelector(`#content-${node.id}`);
+        contentDiv.appendChild(createTreeDOM(node.children));
+      }
+
+      ul.appendChild(li);
+    });
+
+    return ul;
+  }
+
+  function toggleNode(event, id) {
+    event.stopPropagation();
+    const li = document.getElementById(`node-${id}`);
+    if (li) li.classList.toggle('open');
+  }
+
+  // 強制展開或收起節點及其底下的所有子孫節點
+  function setNodeAndChildrenOpenState(nodes, isOpen) {
+    nodes.forEach(node => {
+      const li = document.getElementById(`node-${node.id}`);
+      if (li) {
+        if (isOpen) li.classList.add('open');
+        else li.classList.remove('open');
+      }
+      if (node.children && node.children.length > 0) {
+        setNodeAndChildrenOpenState(node.children, isOpen);
+      }
+    });
+  }
+
+  // 搜尋邏輯：命中大分類/中分類時，爆開該節點底下的所有子層
+  function handleSearch() {
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    function filterNodes(nodes, isParentMatched = false) {
+      let anyMatch = false;
+
+      nodes.forEach(node => {
+        const li = document.getElementById(`node-${node.id}`);
+        const titleMatch = node.title.toLowerCase().includes(query);
+        
+        // 如果父層已經匹配，或者自己名稱匹配，該層即算作直接匹配
+        const selfOrParentMatch = isParentMatched || (query !== '' && titleMatch);
+        let childMatch = false;
+
+        if (node.children && node.children.length > 0) {
+          childMatch = filterNodes(node.children, selfOrParentMatch);
+        }
+
+        if (query === '') {
+          // 清空搜尋時恢復收起狀態
+          li.classList.remove('hidden', 'open');
+        } else if (titleMatch || childMatch || isParentMatched) {
+          li.classList.remove('hidden');
+          li.classList.add('open');
+
+          // 如果是該節點自己命中關鍵字，將它底下所有子孫節點通通爆開
+          if (titleMatch && node.children && node.children.length > 0) {
+            setNodeAndChildrenOpenState(node.children, true);
+          }
+
+          anyMatch = true;
+        } else {
+          li.classList.add('hidden');
+        }
+      });
+
+      return anyMatch;
+    }
+
+    filterNodes(treeData);
+  }
+
+  function findNodeAndParent(nodes, id, parent = null) {
+    for (let node of nodes) {
+      if (node.id === id) return { node, parent };
+      if (node.children) {
+        const res = findNodeAndParent(node.children, id, node);
+        if (res.node) return res;
+      }
+    }
+    return { node: null, parent: null };
+  }
+
+  function addNode(parentId) {
+    let title = '';
+    if (!parentId) {
+      const input = document.getElementById('rootInput');
+      title = input.value.trim();
+      input.value = '';
+    } else {
+      title = prompt('請輸入新項目/子層名稱：');
+    }
+
+    if (!title) return;
+
+    const newNode = { id: 'node_' + Date.now(), title: title.trim(), children: [] };
+
+    if (!parentId) {
+      treeData.push(newNode);
+    } else {
+      const { node } = findNodeAndParent(treeData, parentId);
+      if (node) {
+        node.children.push(newNode);
+      }
+    }
+
+    saveData();
+    renderTree();
+
+    if (parentId) {
+      const parentLi = document.getElementById(`node-${parentId}`);
+      if (parentLi) parentLi.classList.add('open');
+    }
+  }
+
+  function editNode(id) {
+    const { node } = findNodeAndParent(treeData, id);
+    if (!node) return;
+
+    const newTitle = prompt('修改名稱：', node.title);
+    if (newTitle !== null && newTitle.trim() !== '') {
+      node.title = newTitle.trim();
+      saveData();
+      renderTree();
+    }
+  }
+
+  function deleteNode(id) {
+    if (!confirm('確定刪除此項目（連同其所有子項目）？')) return;
+
+    const { node, parent } = findNodeAndParent(treeData, id);
+    if (parent) {
+      parent.children = parent.children.filter(child => child.id !== id);
+    } else {
+      treeData = treeData.filter(item => item.id !== id);
+    }
+
+    saveData();
+    renderTree();
+  }
+
+  function exportJSON() {
+    const dataStr = JSON.stringify(treeData, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tree_backup_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function triggerImport() {
+    document.getElementById('importInput').click();
+  }
+
+  function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        if (Array.isArray(importedData)) {
+          if (confirm('匯入備份將會覆蓋當前所有資料，確定要還原嗎？')) {
+            treeData = importedData;
+            saveData();
+            renderTree();
+            alert('資料已成功還原！');
+          }
+        } else {
+          alert('匯入失敗：備份檔案格式不正確！');
+        }
+      } catch (err) {
+        alert('解析 JSON 檔案時發生錯誤！');
+      }
+      event.target.value = '';
+    };
+
+    reader.readAsText(file);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  renderTree();
+</script>
+</body>
+</html>

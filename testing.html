@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>無限層級樹狀清單</title>
   
-  <!-- iOS PWA 獨立全螢幕 App 設定（隱藏 Safari 網址列） -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="我的清單">
@@ -16,46 +15,49 @@
     h1 { text-align: center; font-size: 1.4rem; color: #2c3e50; margin: 10px 0 15px; }
     
     .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px; }
-    .search-box { width: 100%; padding: 12px 15px; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 8px; outline: none; transition: border-color 0.2s; }
-    .search-box:focus { border-color: #3498db; }
+    .search-box { width: 100%; padding: 12px 15px; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 8px; outline: none; }
     
     .add-root-form { display: flex; gap: 8px; }
     .add-root-form input { flex: 1; padding: 10px 12px; font-size: 15px; border: 1px solid #cbd5e1; border-radius: 6px; }
     
-    /* 備份按鈕區塊 */
     .backup-bar { display: flex; gap: 10px; justify-content: space-between; align-items: center; }
     .backup-bar span { font-size: 13px; color: #64748b; font-weight: 600; }
     .backup-btn-group { display: flex; gap: 8px; }
     
-    /* 按鈕樣式 (針對手機觸控優化) */
-    button { cursor: pointer; padding: 6px 12px; border: none; border-radius: 6px; background: #3498db; color: white; font-size: 13px; font-weight: 500; -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; padding: 6px 12px; border: none; border-radius: 6px; background: #3498db; color: white; font-size: 13px; font-weight: 500; }
     button:active { opacity: 0.8; }
     button.success { background: #2ecc71; }
     button.danger { background: #e74c3c; }
     button.secondary { background: #8e44ad; }
     button.outline { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
     
-    /* 樹狀結構與縮排 */
     .tree-group { list-style: none; padding-left: 0; margin: 0; }
-    .node-content .tree-group { padding-left: 12px; border-left: 2px solid #e2e8f0; margin-top: 6px; }
+    .node-content .tree-group { padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 6px; }
     
     .tree-node { margin-bottom: 6px; }
     .node-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
     
-    /* 修正頂層與文字佈局：改用 align-items: flex-start 讓多行文字時按鈕依然對齊頂部 */
-    .node-header { padding: 10px 12px; display: flex; align-items: flex-start; justify-content: space-between; background: #fff; user-select: none; gap: 8px; }
-    .node-title-group { display: flex; align-items: flex-start; gap: 6px; flex: 1; overflow: hidden; }
+    .node-header { padding: 10px 12px; background: #fff; user-select: none; }
+    .node-main-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .node-title-group { display: flex; align-items: flex-start; gap: 6px; flex: 1; min-width: 0; }
     .toggle-btn { background: none; color: #64748b; font-size: 12px; padding: 2px 4px; border-radius: 4px; width: 20px; text-align: center; margin-top: 2px; }
     
-    /* 關鍵修正：允許長文字自動換行與換行折疊 */
-    .node-title { font-weight: 600; font-size: 15px; word-break: break-word; white-space: normal; line-height: 1.4; flex: 1; }
-    .badge { font-size: 11px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 10px; font-weight: normal; margin-top: 2px; flex-shrink: 0; }
+    /* 核心修改：依據空白鍵（Space）或 Enter 換行才進行折行，確保字詞完整 */
+    .node-title { 
+      font-weight: 600; 
+      font-size: 15px; 
+      line-height: 1.5; 
+      word-break: normal; 
+      overflow-wrap: break-word; 
+      white-space: pre-wrap; 
+      flex: 1;
+    }
+    .badge { font-size: 11px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 10px; margin-top: 2px; flex-shrink: 0; }
     
     .node-actions { display: flex; gap: 4px; flex-shrink: 0; margin-top: 1px; }
     .node-actions button { padding: 4px 8px; font-size: 12px; }
     
-    .node-content { display: none; padding: 6px 6px 6px 10px; background: #fafafa; border-top: 1px dashed #e2e8f0; }
-    .tree-node.open > .node-card > .node-content { display: block; }
+    .node-content { display: none; padding: 6px; background: #fafafa; border-top: 1px dashed #e2e8f0; }
     .tree-node.open > .node-card > .node-header .toggle-btn { transform: rotate(90deg); color: #3498db; }
     
     .hidden { display: none !important; }
@@ -66,7 +68,6 @@
 
   <h1>無限層級樹狀清單</h1>
 
-  <!-- 備份與還原工具列 -->
   <div class="card">
     <div class="backup-bar">
       <span>💾 資料安全備份</span>
@@ -78,12 +79,10 @@
     </div>
   </div>
 
-  <!-- 搜尋列 -->
   <div class="card">
-    <input type="text" id="searchInput" class="search-box" placeholder="搜尋關鍵字（符合者將爆開所有子層）..." oninput="handleSearch()">
+    <input type="text" id="searchInput" class="search-box" placeholder="搜尋關鍵字..." oninput="handleSearch()">
   </div>
 
-  <!-- 新增最頂層分類 -->
   <div class="card">
     <div class="add-root-form">
       <input type="text" id="rootInput" placeholder="新增主分類 (例如: 工作)">
@@ -91,7 +90,6 @@
     </div>
   </div>
 
-  <!-- 樹狀清單容器 -->
   <div class="card">
     <ul id="treeContainer" class="tree-group"></ul>
   </div>
@@ -102,11 +100,9 @@
       id: '1', title: '工作', children: [
         {
           id: '1-1', title: '清潔', children: [
-            { id: '1-1-1', title: '陳大文', children: [] },
-            { id: '1-1-2', title: '李小姐', children: [] }
+            { id: '1-1-1', title: '陳大文\n電話: 91234567\n備註: 負責 1 樓大堂清潔作業', children: [] }
           ]
-        },
-        { id: '1-2', title: 'IT 支援', children: [] }
+        }
       ]
     }
   ];
@@ -142,15 +138,17 @@
       li.innerHTML = `
         <div class="node-card">
           <div class="node-header" onclick="toggleNode(event, '${node.id}')">
-            <div class="node-title-group">
-              <button class="toggle-btn">${hasChildren ? '▶' : '•'}</button>
-              <span class="node-title">${escapeHtml(node.title)}</span>
-              ${hasChildren ? `<span class="badge">${childCount}</span>` : ''}
-            </div>
-            <div class="node-actions" onclick="event.stopPropagation()">
-              <button class="success" onclick="addNode('${node.id}')">+子層</button>
-              <button onclick="editNode('${node.id}')">改</button>
-              <button class="danger" onclick="deleteNode('${node.id}')">刪</button>
+            <div class="node-main-row">
+              <div class="node-title-group">
+                <button class="toggle-btn">${hasChildren ? '▶' : '•'}</button>
+                <div class="node-title">${escapeHtml(node.title)}</div>
+                ${hasChildren ? `<span class="badge">${childCount}</span>` : ''}
+              </div>
+              <div class="node-actions" onclick="event.stopPropagation()">
+                <button class="success" onclick="addNode('${node.id}')">+子層</button>
+                <button onclick="editNode('${node.id}')">改</button>
+                <button class="danger" onclick="deleteNode('${node.id}')">刪</button>
+              </div>
             </div>
           </div>
           <div class="node-content" id="content-${node.id}"></div>
@@ -243,7 +241,7 @@
       title = input.value.trim();
       input.value = '';
     } else {
-      title = prompt('請輸入新項目/子層名稱：');
+      title = prompt('請輸入新項目/子層內容：');
     }
 
     if (!title) return;
@@ -272,7 +270,7 @@
     const { node } = findNodeAndParent(treeData, id);
     if (!node) return;
 
-    const newTitle = prompt('修改名稱：', node.title);
+    const newTitle = prompt('修改內容：', node.title);
     if (newTitle !== null && newTitle.trim() !== '') {
       node.title = newTitle.trim();
       saveData();

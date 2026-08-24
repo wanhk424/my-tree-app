@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>無限層級樹狀清單（搜尋全爆開版）</title>
+  <title>無限層級樹狀清單</title>
+  
+  <!-- iOS PWA 獨立全螢幕 App 設定（隱藏 Safari 網址列） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="我的清單">
+
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { max-width: 1300px; margin: 0 auto; padding: 15px; background-color: #f4f6f8; color: #333; }
+    body { max-width: 600px; margin: 0 auto; padding: 15px; background-color: #f4f6f8; color: #333; }
     h1 { text-align: center; font-size: 1.4rem; color: #2c3e50; margin: 10px 0 15px; }
     
     .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px; }
@@ -34,18 +37,21 @@
     
     /* 樹狀結構與縮排 */
     .tree-group { list-style: none; padding-left: 0; margin: 0; }
-    .node-content .tree-group { padding-left: 15px; border-left: 2px solid #e2e8f0; margin-top: 6px; }
+    .node-content .tree-group { padding-left: 12px; border-left: 2px solid #e2e8f0; margin-top: 6px; }
     
     .tree-node { margin-bottom: 6px; }
     .node-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
     
-    .node-header { padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; background: #fff; user-select: none; }
-    .node-title-group { display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; }
-    .toggle-btn { background: none; color: #64748b; font-size: 12px; padding: 4px; border-radius: 4px; width: 24px; text-align: center; }
-    .node-title { font-weight: 600; font-size: 15px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-    .badge { font-size: 11px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 10px; font-weight: normal; }
+    /* 修正頂層與文字佈局：改用 align-items: flex-start 讓多行文字時按鈕依然對齊頂部 */
+    .node-header { padding: 10px 12px; display: flex; align-items: flex-start; justify-content: space-between; background: #fff; user-select: none; gap: 8px; }
+    .node-title-group { display: flex; align-items: flex-start; gap: 6px; flex: 1; overflow: hidden; }
+    .toggle-btn { background: none; color: #64748b; font-size: 12px; padding: 2px 4px; border-radius: 4px; width: 20px; text-align: center; margin-top: 2px; }
     
-    .node-actions { display: flex; gap: 4px; }
+    /* 關鍵修正：允許長文字自動換行與換行折疊 */
+    .node-title { font-weight: 600; font-size: 15px; word-break: break-word; white-space: normal; line-height: 1.4; flex: 1; }
+    .badge { font-size: 11px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 10px; font-weight: normal; margin-top: 2px; flex-shrink: 0; }
+    
+    .node-actions { display: flex; gap: 4px; flex-shrink: 0; margin-top: 1px; }
     .node-actions button { padding: 4px 8px; font-size: 12px; }
     
     .node-content { display: none; padding: 6px 6px 6px 10px; background: #fafafa; border-top: 1px dashed #e2e8f0; }
@@ -168,7 +174,6 @@
     if (li) li.classList.toggle('open');
   }
 
-  // 強制展開或收起節點及其底下的所有子孫節點
   function setNodeAndChildrenOpenState(nodes, isOpen) {
     nodes.forEach(node => {
       const li = document.getElementById(`node-${node.id}`);
@@ -182,7 +187,6 @@
     });
   }
 
-  // 搜尋邏輯：命中大分類/中分類時，爆開該節點底下的所有子層
   function handleSearch() {
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
 
@@ -192,8 +196,6 @@
       nodes.forEach(node => {
         const li = document.getElementById(`node-${node.id}`);
         const titleMatch = node.title.toLowerCase().includes(query);
-        
-        // 如果父層已經匹配，或者自己名稱匹配，該層即算作直接匹配
         const selfOrParentMatch = isParentMatched || (query !== '' && titleMatch);
         let childMatch = false;
 
@@ -202,13 +204,11 @@
         }
 
         if (query === '') {
-          // 清空搜尋時恢復收起狀態
           li.classList.remove('hidden', 'open');
         } else if (titleMatch || childMatch || isParentMatched) {
           li.classList.remove('hidden');
           li.classList.add('open');
 
-          // 如果是該節點自己命中關鍵字，將它底下所有子孫節點通通爆開
           if (titleMatch && node.children && node.children.length > 0) {
             setNodeAndChildrenOpenState(node.children, true);
           }

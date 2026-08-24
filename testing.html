@@ -24,7 +24,7 @@
     .backup-bar span { font-size: 13px; color: #64748b; font-weight: 600; }
     .backup-btn-group { display: flex; gap: 8px; }
     
-    button { cursor: pointer; padding: 6px 12px; border: none; border-radius: 6px; background: #3498db; color: white; font-size: 13px; font-weight: 500; }
+    button { cursor: pointer; padding: 6px 12px; border: none; border-radius: 6px; background: #3498db; color: white; font-size: 13px; font-weight: 500; -webkit-tap-highlight-color: transparent; }
     button:active { opacity: 0.8; }
     button.success { background: #2ecc71; }
     button.danger { background: #e74c3c; }
@@ -37,12 +37,14 @@
     .tree-node { margin-bottom: 6px; }
     .node-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
     
-    .node-header { padding: 10px 12px; background: #fff; user-select: none; }
+    /* 修正觸控邊界與冒泡 */
+    .node-header { padding: 10px 12px; background: #fff; user-select: none; -webkit-tap-highlight-color: rgba(0,0,0,0.05); cursor: pointer; }
     .node-main-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    .node-title-group { display: flex; align-items: flex-start; gap: 6px; flex: 1; min-width: 0; }
-    .toggle-btn { background: none; color: #64748b; font-size: 12px; padding: 2px 4px; border-radius: 4px; width: 20px; text-align: center; margin-top: 2px; }
     
-    /* 核心修改：依據空白鍵（Space）或 Enter 換行才進行折行，確保字詞完整 */
+    /* 點擊觸發區域，文字設定 pointer-events: none 防卡死 */
+    .node-title-group { display: flex; align-items: flex-start; gap: 6px; flex: 1; min-width: 0; pointer-events: none; }
+    .toggle-btn { background: none; color: #64748b; font-size: 12px; padding: 2px 4px; border-radius: 4px; width: 20px; text-align: center; margin-top: 2px; transition: transform 0.2s; pointer-events: none; }
+    
     .node-title { 
       font-weight: 600; 
       font-size: 15px; 
@@ -51,14 +53,18 @@
       overflow-wrap: break-word; 
       white-space: pre-wrap; 
       flex: 1;
+      pointer-events: none; /* 關鍵修正：讓觸控直接穿透到父層容器觸發 Toggle */
     }
-    .badge { font-size: 11px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 10px; margin-top: 2px; flex-shrink: 0; }
+    .badge { font-size: 11px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 10px; margin-top: 2px; flex-shrink: 0; pointer-events: none; }
     
-    .node-actions { display: flex; gap: 4px; flex-shrink: 0; margin-top: 1px; }
+    .node-actions { display: flex; gap: 4px; flex-shrink: 0; margin-top: 1px; pointer-events: auto; }
     .node-actions button { padding: 4px 8px; font-size: 12px; }
     
     .node-content { display: none; padding: 6px; background: #fafafa; border-top: 1px dashed #e2e8f0; }
+    
+    /* 開啟時箭頭旋轉 */
     .tree-node.open > .node-card > .node-header .toggle-btn { transform: rotate(90deg); color: #3498db; }
+    .tree-node.open > .node-card > .node-content { display: block; }
     
     .hidden { display: none !important; }
     .empty-msg { text-align: center; color: #94a3b8; padding: 20px 0; font-size: 14px; }
@@ -140,7 +146,7 @@
           <div class="node-header" onclick="toggleNode(event, '${node.id}')">
             <div class="node-main-row">
               <div class="node-title-group">
-                <button class="toggle-btn">${hasChildren ? '▶' : '•'}</button>
+                <span class="toggle-btn">${hasChildren ? '▶' : '•'}</span>
                 <div class="node-title">${escapeHtml(node.title)}</div>
                 ${hasChildren ? `<span class="badge">${childCount}</span>` : ''}
               </div>
@@ -166,10 +172,13 @@
     return ul;
   }
 
+  // 獨立精準的 Toggle 處理，阻止子層觸發到父層
   function toggleNode(event, id) {
     event.stopPropagation();
     const li = document.getElementById(`node-${id}`);
-    if (li) li.classList.toggle('open');
+    if (li) {
+      li.classList.toggle('open');
+    }
   }
 
   function setNodeAndChildrenOpenState(nodes, isOpen) {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 修正版</title>
+    <title>奇門遁甲排盤系統 - 最終修正版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -89,7 +89,6 @@
 
 <script>
     window.onload = function() {
-        let now = new Date('2026-10-07T19:52:00');
         document.getElementById('dateInput').value = "2026-10-07T19:52";
         autoConvert();
     };
@@ -127,7 +126,6 @@
     const STARS_ORDER = ['任', '沖', '輔', '英', '芮', '柱', '心', '蓬']; 
     const DOORS_ORDER = ['休', '生', '傷', '杜', '景', '死', '惊', '開']; 
     const GODS_ORDER = ['符', '蛇', '陰', '合', '虎', '武', '九', '天']; 
-    const PALACE_GRID_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
 
     function calculate() {
         let juType = document.getElementById('juType').value;
@@ -149,7 +147,7 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 排地盤 (修正順逆排次序)
+        // 排地盤
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
         let currentPalace = juNumber;
         for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
@@ -208,19 +206,23 @@
             else godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 排暗干
+        // ==========================================
+        // 獨立正確計算暗干 (以時干起於值使門宮，順逆飛布)
+        // ==========================================
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
         let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
         
-        let curr = zhiShiPalace;
+        let currAn = zhiShiPalace;
         let tempAnGan = {};
         let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
+        if (sIdx === -1) sIdx = 0;
+        
         for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
-            tempAnGan[curr] = EARTH_STEM_ORDER[(sIdx + i) % 9];
-            curr = (juType === '陽') ? (curr % 9 + 1) : (curr === 1 ? 9 : curr - 1);
+            tempAnGan[currAn] = EARTH_STEM_ORDER[(sIdx + i) % 9];
+            currAn = (juType === '陽') ? (currAn % 9 + 1) : (currAn === 1 ? 9 : currAn - 1);
         }
         Object.assign(anGanPan, tempAnGan);
-        anGanPan[2] = (anGanPan[2] || '') + (tempAnGan[5] || '');
+        anGanPan[2] = (anGanPan[2] || '') + (tempAnGan[5] || ''); // 中宮寄2宮
 
         // 神煞 (馬, 空, 刑, 墓, 迫)
         let remarks = {1:{}, 2:{}, 3:{}, 4:{}, 6:{}, 7:{}, 8:{}, 9:{}};
@@ -246,13 +248,15 @@
         }
 
         // 渲染畫面
-        document.getElementById('g5-data').innerHTML = `阴 ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>甲戌 时`;
+        document.getElementById('g5-data').innerHTML = `阴 ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>${hGz} 时`;
 
         for (let i = 1; i <= 9; i++) {
             if (i === 5) continue;
             
+            // 獨立渲染綠色暗干
             document.getElementById(`g${i}-angan`).innerText = anGanPan[i] || '';
 
+            // 渲染九宮格內部 (左：神、星、門 | 右：天干、地盤干)
             let html = `
                 <span>${godsPan[i] || ''}</span> <span></span> <span>${godsPan[i] || ''}</span>
                 <span>${starsPan[i] || ''}</span> <span class="red-txt">${remarks[i].xing ? '刑' : ''}</span> <span>${heavenPan[i] || ''}</span>

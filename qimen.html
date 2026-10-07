@@ -152,7 +152,7 @@
         document.getElementById('nextJqLabel').innerText = nextJq.getName();
         document.getElementById('nextJqText').value = nextJq.getSolar().toYmdHms();
         
-        calculate(hGz, prevJq);
+        calculate(lunar, hGz);
     }
 
     const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -168,19 +168,41 @@
     const DOORS_ORDER = ['休', '生', '傷', '杜', '景', '死', '惊', '開']; 
     const GODS_ORDER = ['符', '蛇', '陰', '合', '虎', '武', '九', '天']; 
 
-    // 動態計算局數與陰陽（示範依據標準節氣對應，亦可擴充完整表）
-    function getJuInfo(jqName) {
-        // 簡單示範：夏至到大雪屬陰，冬至到芒種屬陽。此處以動態計算為基礎。
-        const yinJieQi = ['夏至', '小暑', '大暑', '立秋', '白露', '秋分', '寒露', '霜降', '立冬', '小雪', '大雪'];
-        let isYin = yinJieQi.includes(jqName);
-        return { type: isYin ? "陰" : "陽", number: 8 }; // 保持動態對應架構
+    // 動態計算節氣對應的局數與陰陽（茅山法標準三元對應）
+    function getJuInfo(lunar) {
+        let jq = lunar.getPrevJieQi();
+        let jqName = jq.getName();
+        let dayGz = lunar.getDayInGanZhi();
+        let dayBranch = dayGz.charAt(1);
+        
+        let yuanIdx = 0;
+        if (['子', '午', '卯', '酉'].includes(dayBranch)) yuanIdx = 0;
+        else if (['寅', '申', '巳', '亥'].includes(dayBranch)) yuanIdx = 1;
+        else yuanIdx = 2;
+
+        const juTable = {
+            '冬至': [1, 7, 4], '小寒': [2, 8, 5], '大寒': [3, 9, 6],
+            '立春': [8, 5, 2], '雨水': [7, 4, 1], '驚蟄': [1, 7, 4],
+            '春分': [3, 9, 6], '清明': [4, 1, 7], '谷雨': [5, 2, 8],
+            '立夏': [4, 1, 7], '小滿': [5, 2, 8], '芒種': [6, 3, 9],
+            '夏至': [9, 3, 6], '小暑': [8, 2, 5], '大暑': [7, 1, 4],
+            '立秋': [2, 5, 8], '白露': [9, 3, 6], '秋分': [7, 1, 4],
+            '寒露': [4, 7, 1], '霜降': [5, 8, 2], '立冬': [6, 9, 3],
+            '小雪': [5, 8, 2], '大雪': [1, 7, 4]
+        };
+
+        const yangJieQi = ['冬至', '小寒', '大寒', '立春', '雨水', '驚蟄', '春分', '清明', '谷雨', '立夏', '小滿', '芒種'];
+        let isYang = yangJieQi.includes(jqName);
+        let juNum = juTable[jqName] ? juTable[jqName][yuanIdx] : 8;
+
+        return { type: isYang ? "陽" : "陰", number: juNum };
     }
 
-    function calculate(hGz, prevJq) {
+    function calculate(lunar, hGz) {
         let tStem = hGz.charAt(0);
         let tBranch = hGz.charAt(1);
 
-        let juInfo = getJuInfo(prevJq.getName());
+        let juInfo = getJuInfo(lunar);
         let juType = juInfo.type;
         let juNumber = juInfo.number;
 
@@ -197,7 +219,7 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 2. 動態生成地盤 (依陰陽局順逆飛布九宮)
+        // 2. 動態生成地盤 (全動態飛布，不再寫死)
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
         let luoshuOrder = juType === '陽' ? [1,2,3,4,5,6,7,8,9] : [9,8,7,6,5,4,3,2,1];
         let startIdx = luoshuOrder.indexOf(juNumber);
@@ -247,7 +269,7 @@
         let p1Idx = CLOCKWISE_PALACES.indexOf(1);
         for (let i = 0; i < 8; i++) heavenPan[CLOCKWISE_PALACES[(pengIdx + i) % 8]] = earthPan[CLOCKWISE_PALACES[(p1Idx + i) % 8]];
 
-        // 7. 動態排八神 (天盤八神)
+        // 7. 動態排八神
         let godsPan = {};
         let heavenXunPalace = Object.keys(heavenPan).find(key => heavenPan[key].includes(xunShouStem));
         let godStartIdx = juType === '陽' ? CLOCKWISE_PALACES.indexOf(parseInt(heavenXunPalace)) : COUNTER_CLOCKWISE.indexOf(parseInt(heavenXunPalace));
@@ -256,7 +278,6 @@
             else godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 7.1 動態排地盤八神
         let earthGodsPan = {};
         let earthXunPalace = Object.keys(earthPan).find(key => earthPan[key].includes(xunShouStem));
         let earthGodStartIdx = juType === '陽' ? CLOCKWISE_PALACES.indexOf(parseInt(earthXunPalace)) : COUNTER_CLOCKWISE.indexOf(parseInt(earthXunPalace));
@@ -265,7 +286,7 @@
             else earthGodsPan[COUNTER_CLOCKWISE[(earthGodStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 動態排暗干 (以值使宮起步，順逆飛布)
+        // 8. 動態排暗干
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
         let anGanSeq = juType === '陽' ? [1,2,3,4,5,6,7,8,9] : [9,8,7,6,5,4,3,2,1];
         let zhiShiIdx = anGanSeq.indexOf(zhiShiPalace);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 最終修正版</title>
+    <title>奇門遁甲排盤系統 - 全自動時間版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -20,10 +20,7 @@
         .input-group input[readonly] { background: #fdfdfd; color: #666; }
         .pillar-box { border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; text-align: center; background: #fafafa; font-size: 14px; color: #333; letter-spacing: 2px; }
         
-        .manual-settings { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; display: flex; gap: 10px; align-items: center; border: 1px solid #e0e0e0; }
-        .manual-settings select, .manual-settings input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-        button.calc-btn { background: #1976d2; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: auto; }
-        
+        /* 九宮格佈局 */
         .gong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; }
         .gong { height: 130px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
         
@@ -44,12 +41,16 @@
 <body>
 
 <div class="container">
+    <!-- 基本資訊面板 (唯一的輸入源) -->
     <div class="panel">
-        <div class="panel-header"><span>基本資訊</span></div>
+        <div class="panel-header"><span>基本資訊 (自動排盤)</span></div>
         <div class="panel-body">
             <div class="form-row">
                 <div class="form-left">
-                    <div class="input-group"><label>日期</label><input type="datetime-local" id="dateInput" onchange="autoConvert()"></div>
+                    <div class="input-group">
+                        <label>日期時間</label>
+                        <input type="datetime-local" id="dateInput" onchange="autoConvert()">
+                    </div>
                     <div class="input-group"><label>農曆</label><input type="text" id="lunarText" readonly></div>
                     <div class="input-group"><label id="prevJqLabel">節氣</label><input type="text" id="prevJqText" readonly></div>
                     <div class="input-group"><label id="nextJqLabel">節氣</label><input type="text" id="nextJqText" readonly></div>
@@ -64,16 +65,7 @@
         </div>
     </div>
 
-    <div class="manual-settings">
-        <label>手動定局:</label>
-        <select id="juType"><option value="陽">陽</option><option value="陰" selected>陰</option></select>
-        <input type="number" id="juNumber" value="8" min="1" max="9" style="width: 40px;">
-        <label style="margin-left:10px;">時干支:</label>
-        <input type="text" id="manualHourGz" value="甲戌" style="width: 50px;" readonly>
-        <button class="calc-btn" onclick="calculate()">排盤更新</button>
-    </div>
-
-    <!-- 九宮格 -->
+    <!-- 九宮格盤面 -->
     <div class="gong-grid">
         <div class="gong bg-blue" id="gong-4"><div class="gong-num">4</div><div class="green-stem" id="g4-angan"></div><div class="gong-data" id="g4-data"></div></div>
         <div class="gong bg-yellow" id="gong-9"><div class="gong-num">9</div><div class="green-stem" id="g9-angan"></div><div class="gong-data" id="g9-data"></div></div>
@@ -88,6 +80,7 @@
 </div>
 
 <script>
+    // 預設載入你截圖中的測試時間：2026年10月7日 19:52
     window.onload = function() {
         document.getElementById('dateInput').value = "2026-10-07T19:52";
         autoConvert();
@@ -99,177 +92,22 @@
         let date = new Date(dateStr);
         let lunar = Lunar.fromDate(date);
         
-        document.getElementById('yearPillar').innerText = '年 ' + lunar.getYearInGanZhi();
-        document.getElementById('monthPillar').innerText = '月 ' + lunar.getMonthInGanZhi();
-        document.getElementById('dayPillar').innerText = '日 ' + lunar.getDayInGanZhi();
-        document.getElementById('hourPillar').innerText = '時 ' + lunar.getTimeInGanZhi();
-        document.getElementById('manualHourGz').value = lunar.getTimeInGanZhi();
+        // 顯示四柱
+        let yGz = lunar.getYearInGanZhi();
+        let mGz = lunar.getMonthInGanZhi();
+        let dGz = lunar.getDayInGanZhi();
+        let hGz = lunar.getTimeInGanZhi();
         
+        document.getElementById('yearPillar').innerText = '年 ' + yGz;
+        document.getElementById('monthPillar').innerText = '月 ' + mGz;
+        document.getElementById('dayPillar').innerText = '日 ' + dGz;
+        document.getElementById('hourPillar').innerText = '時 ' + hGz;
+        
+        // 顯示農曆與節氣
         document.getElementById('lunarText').value = lunar.getMonthInChinese() + '月' + lunar.getDayInChinese();
-        document.getElementById('prevJqLabel').innerText = lunar.getPrevJieQi().getName();
-        document.getElementById('prevJqText').value = lunar.getPrevJieQi().getSolar().toYmdHms();
-        document.getElementById('nextJqLabel').innerText = lunar.getNextJieQi().getName();
-        document.getElementById('nextJqText').value = lunar.getNextJieQi().getSolar().toYmdHms();
-        
-        calculate();
-    }
-
-    const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-    const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-    const EARTH_STEM_ORDER = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
-    const ORIGINAL_PALACE = {
-        1: { star: '蓬', door: '休' }, 2: { star: '芮', door: '死' }, 3: { star: '沖', door: '傷' }, 4: { star: '輔', door: '杜' },
-        6: { star: '心', door: '開' }, 7: { star: '柱', door: '惊' }, 8: { star: '任', door: '生' }, 9: { star: '英', door: '景' }
-    };
-    const CLOCKWISE_PALACES = [8, 3, 4, 9, 2, 7, 6, 1]; 
-    const COUNTER_CLOCKWISE = [8, 1, 6, 7, 2, 9, 4, 3]; 
-    const STARS_ORDER = ['任', '沖', '輔', '英', '芮', '柱', '心', '蓬']; 
-    const DOORS_ORDER = ['休', '生', '傷', '杜', '景', '死', '惊', '開']; 
-    const GODS_ORDER = ['符', '蛇', '陰', '合', '虎', '武', '九', '天']; 
-
-    function calculate() {
-        let juType = document.getElementById('juType').value;
-        let juNumber = parseInt(document.getElementById('juNumber').value);
-        let hGz = document.getElementById('manualHourGz').value || '甲戌';
-        let tStem = hGz.charAt(0);
-        let tBranch = hGz.charAt(1);
-
-        // 找旬首與空亡
-        let stemIdx = STEMS.indexOf(tStem);
-        let branchIdx = BRANCHES.indexOf(tBranch);
-        let diff = branchIdx - stemIdx;
-        if (diff < 0) diff += 12;
-        let xunShouStem = "", xunBranch = "", kongPalaces = [];
-        if (diff === 0) { xunShouStem = "戊"; xunBranch = "子"; kongPalaces = [6]; } 
-        else if (diff === 10) { xunShouStem = "己"; xunBranch = "戌"; kongPalaces = [2, 7]; } 
-        else if (diff === 8) { xunShouStem = "庚"; xunBranch = "申"; kongPalaces = [9, 2]; } 
-        else if (diff === 6) { xunShouStem = "辛"; xunBranch = "午"; kongPalaces = [4]; } 
-        else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
-        else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
-
-        // 排地盤
-        let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
-        let currentPalace = juNumber;
-        for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
-            earthPan[currentPalace] = EARTH_STEM_ORDER[i];
-            if (juType === '陽') {
-                currentPalace = (currentPalace % 9) + 1;
-            } else {
-                currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
-            }
-        }
-        earthPan[2] = earthPan[2] + earthPan[5]; 
-
-        // 定值符值使
-        let xunShouPalace = 0;
-        for (let p = 1; p <= 9; p++) { if (earthPan[p].includes(xunShouStem)) xunShouPalace = p; }
-        let targetPalace = xunShouPalace === 5 ? 2 : xunShouPalace;
-        let zhiFu = ORIGINAL_PALACE[targetPalace].star;
-        let zhiShi = ORIGINAL_PALACE[targetPalace].door;
-
-        // 排九星
-        let timeStemPalace = 0;
-        for (let p = 1; p <= 9; p++) { if (earthPan[p].includes(tStem)) timeStemPalace = p; }
-        if (timeStemPalace === 5) timeStemPalace = 2;
-        let starsPan = {};
-        let startPalaceIdx = CLOCKWISE_PALACES.indexOf(timeStemPalace);
-        let startStarIdx = STARS_ORDER.indexOf(zhiFu);
-        for (let i = 0; i < 8; i++) starsPan[CLOCKWISE_PALACES[(startPalaceIdx + i) % 8]] = STARS_ORDER[(startStarIdx + i) % 8];
-
-        // 排天盤
-        let heavenPan = {};
-        let pengPalace = Object.keys(starsPan).find(key => starsPan[key] === '蓬');
-        let pengIdx = CLOCKWISE_PALACES.indexOf(parseInt(pengPalace));
-        let p1Idx = CLOCKWISE_PALACES.indexOf(1);
-        for (let i = 0; i < 8; i++) heavenPan[CLOCKWISE_PALACES[(pengIdx + i) % 8]] = earthPan[CLOCKWISE_PALACES[(p1Idx + i) % 8]];
-
-        // 排八門
-        let doorsPan = {};
-        let xunBranchNum = BRANCHES.indexOf(xunBranch) + 1;
-        let timeBranchNum = BRANCHES.indexOf(tBranch) + 1;
-        let steps = timeBranchNum - xunBranchNum;
-        if (steps < 0) steps += 12;
-        let zhiShiPalace = xunShouPalace;
-        if (juType === '陽') zhiShiPalace = ((xunShouPalace - 1 + steps) % 9) + 1;
-        else zhiShiPalace = ((xunShouPalace - 1 - steps % 9 + 9) % 9) + 1;
-        if (zhiShiPalace === 5) zhiShiPalace = 2;
-        let zhiShiStartIdx = CLOCKWISE_PALACES.indexOf(zhiShiPalace);
-        let doorStartIdx = DOORS_ORDER.indexOf(zhiShi);
-        for (let i = 0; i < 8; i++) doorsPan[CLOCKWISE_PALACES[(zhiShiStartIdx + i) % 8]] = DOORS_ORDER[(doorStartIdx + i) % 8];
-
-        // 排八神
-        let godsPan = {};
-        let heavenXunPalace = Object.keys(heavenPan).find(key => heavenPan[key].includes(xunShouStem));
-        let godStartIdx = juType === '陽' ? CLOCKWISE_PALACES.indexOf(parseInt(heavenXunPalace)) : COUNTER_CLOCKWISE.indexOf(parseInt(heavenXunPalace));
-        for (let i = 0; i < 8; i++) {
-            if (juType === '陽') godsPan[CLOCKWISE_PALACES[(godStartIdx + i) % 8]] = GODS_ORDER[i];
-            else godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
-        }
-
-        // ==========================================
-        // 獨立正確計算暗干 (以時干起於值使門宮，順逆飛布)
-        // ==========================================
-        let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
-        let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
-        
-        let currAn = zhiShiPalace;
-        let tempAnGan = {};
-        let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
-        if (sIdx === -1) sIdx = 0;
-        
-        for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
-            tempAnGan[currAn] = EARTH_STEM_ORDER[(sIdx + i) % 9];
-            currAn = (juType === '陽') ? (currAn % 9 + 1) : (currAn === 1 ? 9 : currAn - 1);
-        }
-        Object.assign(anGanPan, tempAnGan);
-        anGanPan[2] = (anGanPan[2] || '') + (tempAnGan[5] || ''); // 中宮寄2宮
-
-        // 神煞 (馬, 空, 刑, 墓, 迫)
-        let remarks = {1:{}, 2:{}, 3:{}, 4:{}, 6:{}, 7:{}, 8:{}, 9:{}};
-        for (let kp of kongPalaces) remarks[kp].kong = true;
-
-        let maXingPalace = 0;
-        if (['亥','卯','未'].includes(tBranch)) maXingPalace = 4;
-        else if (['寅','午','戌'].includes(tBranch)) maXingPalace = 2;
-        else if (['巳','酉','丑'].includes(tBranch)) maXingPalace = 6;
-        else if (['申','子','辰'].includes(tBranch)) maXingPalace = 8;
-        if(maXingPalace) remarks[maXingPalace].ma = true;
-
-        const JI_XING = { 8:['庚'], 3:['戊'], 4:['壬','癸'], 9:['辛'], 2:['己'] };
-        const RU_MU = { 8:['丁','己','庚'], 6:['乙','丙','戊'], 4:['辛','壬'], 2:['乙','癸'] };
-        const MEN_PO = { 1:['生','死'], 8:['傷','杜'], 2:['傷','杜'], 9:['休'], 6:['景'], 7:['景'], 3:['開','惊'], 4:['開','惊'] };
-
-        for (let p of CLOCKWISE_PALACES) {
-            let ts = heavenPan[p], es = earthPan[p], dr = doorsPan[p];
-            if ((JI_XING[p] && (JI_XING[p].includes(ts) || JI_XING[p].includes(es))) || (ts === '辛' && es === '辛') || (ts === '壬' && es === '壬')) remarks[p].xing = true;
-            if (RU_MU[p] && (RU_MU[p].includes(ts) || RU_MU[p].includes(es))) remarks[p].mu = true;
-            if (MEN_PO[p] && MEN_PO[p].includes(dr)) remarks[p].po = true;
-            if (godsPan[p] === '符') remarks[p].mu = true; 
-        }
-
-        // 渲染畫面
-        document.getElementById('g5-data').innerHTML = `阴 ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>${hGz} 时`;
-
-        for (let i = 1; i <= 9; i++) {
-            if (i === 5) continue;
-            
-            // 獨立渲染綠色暗干
-            document.getElementById(`g${i}-angan`).innerText = anGanPan[i] || '';
-
-            // 渲染九宮格內部 (左：神、星、門 | 右：天干、地盤干)
-            let html = `
-                <span>${godsPan[i] || ''}</span> <span></span> <span>${godsPan[i] || ''}</span>
-                <span>${starsPan[i] || ''}</span> <span class="red-txt">${remarks[i].xing ? '刑' : ''}</span> <span>${heavenPan[i] || ''}</span>
-                <span>${doorsPan[i] || ''}</span> <span class="red-txt">${remarks[i].mu ? '墓' : (remarks[i].po ? '迫' : '')}</span> <span>${earthPan[i] || ''}</span>
-            `;
-            
-            let extraHTML = "";
-            if (remarks[i].kong) extraHTML += `<div class="mark-kong">空</div>`;
-            if (remarks[i].ma) extraHTML += `<div class="mark-ma">馬</div>`;
-            
-            document.getElementById(`g${i}-data`).innerHTML = html + extraHTML;
-        }
-    }
-</script>
-</body>
-</html>
+        let prevJq = lunar.getPrevJieQi();
+        let nextJq = lunar.getNextJieQi();
+        document.getElementById('prevJqLabel').innerText = prevJq.getName();
+        document.getElementById('prevJqText').value = prevJq.getSolar().toYmdHms();
+        document.getElementById('nextJqLabel').innerText = nextJq.getName();
+        document.getElementById('nextJqText

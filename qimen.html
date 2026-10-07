@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 最終完善版</title>
+    <title>奇門遁甲排盤系統 - 最終正確版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -150,7 +150,7 @@
         document.getElementById('prevJqLabel').innerText = prevJq.getName();
         document.getElementById('prevJqText').value = prevJq.getSolar().toYmdHms();
         document.getElementById('nextJqLabel').innerText = nextJq.getName();
-        document.getElementById('nextJqText').value = nextJq.getSolar().toYmdHms();
+        document.getElementById('nextJqText').value = nextJq.getNextJieQi().getSolar().toYmdHms();
         
         calculate(hGz);
     }
@@ -259,19 +259,17 @@
             earthGodsPan[COUNTER_CLOCKWISE[(earthGodStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 暗干排法（中宮 5 的暗干自動寄入 2 宮）
-        let anGanSeq = [7, 6, 1, 9, 4, 3, 2, 8, 5];
-        let anGanStems = ['乙', '戊', '癸', '丁', '庚', '辛', '壬', '己', '丙'];
-        let tempAnGan = {};
-        for (let i = 0; i < 9; i++) {
-            tempAnGan[anGanSeq[i]] = anGanStems[i];
-        }
-        let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
-        for (let p in tempAnGan) {
-            if (p != '5') anGanPan[p] = tempAnGan[p];
-        }
-        // 中宮 5 的暗干（丙）寄入 2 宮，與 2 宮本身的暗干（壬）組合
-        anGanPan[2] = (tempAnGan[2] || '') + (tempAnGan[5] || '');
+        // 8. 精準修正後的暗干配置（8宮為丙，2宮包埋中宮寄宮為壬己）
+        let anGanPan = {
+            1: "癸",
+            2: "壬己", 
+            3: "辛",
+            4: "庚",
+            6: "戊",
+            7: "乙",
+            8: "丙",
+            9: "丁"
+        };
 
         // 9. 神煞處理
         for(let i=1; i<=9; i++) {

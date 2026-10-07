@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 精準修正版</title>
+    <title>奇門遁甲排盤系統 - 最終完美修正版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -123,6 +123,17 @@
     const DOORS_ORDER = ['休', '生', '傷', '杜', '景', '死', '惊', '開']; 
     const GODS_ORDER = ['符', '蛇', '陰', '合', '虎', '武', '九', '天']; 
 
+    // 嚴格九宮飛布軌跡 (支援陽順陰逆)
+    function flyPalaces(startPalace, juType) {
+        let order = (juType === '陽') ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1];
+        let idx = order.indexOf(startPalace);
+        let result = [];
+        for (let i = 0; i < 9; i++) {
+            result.push(order[(idx + i) % 9]);
+        }
+        return result;
+    }
+
     function calculate(hGz) {
         let tStem = hGz.charAt(0);
         let tBranch = hGz.charAt(1);
@@ -143,14 +154,14 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 2. 排地盤 (陰局逆排)
+        // 2. 排地盤 (陰局逆排，包含中宮5並寄2宮)
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
-        let currentPalace = juNumber;
-        for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
-            earthPan[currentPalace] = EARTH_STEM_ORDER[i];
-            currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
+        let earthSeq = flyPalaces(juNumber, juType);
+        for (let i = 0; i < 9; i++) {
+            earthPan[earthSeq[i]] = EARTH_STEM_ORDER[i];
         }
-        earthPan[2] = earthPan[2] + earthPan[5]; 
+        earthPan[2] = earthPan[2] + earthPan[5];
+        earthPan[5] = "";
 
         // 3. 定值符與值使
         let xunShouPalace = 0;
@@ -181,14 +192,14 @@
         let startStarIdx = STARS_ORDER.indexOf(zhiFu);
         for (let i = 0; i < 8; i++) starsPan[CLOCKWISE_PALACES[(startPalaceIdx + i) % 8]] = STARS_ORDER[(startStarIdx + i) % 8];
 
-        // 6. 排天盤 (1宮地盤干落蓬星宮，順時針)
+        // 6. 排天盤
         let heavenPan = {};
         let pengPalace = Object.keys(starsPan).find(key => starsPan[key] === '蓬');
         let pengIdx = CLOCKWISE_PALACES.indexOf(parseInt(pengPalace));
         let p1Idx = CLOCKWISE_PALACES.indexOf(1);
         for (let i = 0; i < 8; i++) heavenPan[CLOCKWISE_PALACES[(pengIdx + i) % 8]] = earthPan[CLOCKWISE_PALACES[(p1Idx + i) % 8]];
 
-        // 7. 排八神 (由天盤旬首落宮起，陰局逆行)
+        // 7. 排八神
         let godsPan = {};
         let heavenXunPalace = Object.keys(heavenPan).find(key => heavenPan[key].includes(xunShouStem));
         let godStartIdx = COUNTER_CLOCKWISE.indexOf(parseInt(heavenXunPalace));
@@ -196,18 +207,22 @@
             godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 排暗干 (以時干起於值使門宮，陰局逆飛)
+        // 8. 排暗干 (以時干起於值使門宮，正確對應九宮飛布)
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
         let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
-        let currAn = zhiShiPalace;
-        let tempAnGan = {};
         let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
         if (sIdx === -1) sIdx = 0;
-        for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
-            tempAnGan[currAn] = EARTH_STEM_ORDER[(sIdx + i) % 9];
-            currAn = currAn === 1 ? 9 : currAn - 1;
+        
+        let anGanSeq = flyPalaces(zhiShiPalace, juType);
+        let tempAnGan = {};
+        for (let i = 0; i < 9; i++) {
+            let stemIdx = (sIdx + (juType === '陽' ? i : -i + 9)) % 9;
+            if (stemIdx < 0) stemIdx += 9;
+            tempAnGan[anGanSeq[i]] = EARTH_STEM_ORDER[stemIdx];
         }
-        Object.assign(anGanPan, tempAnGan);
+        for (let p in tempAnGan) {
+            if (p != 5) anGanPan[p] = tempAnGan[p];
+        }
         anGanPan[2] = (anGanPan[2] || '') + (tempAnGan[5] || '');
 
         // 9. 神煞 (馬, 空, 刑, 墓, 迫)

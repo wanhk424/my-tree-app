@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 自動八字版</title>
-    <!-- 引入 Lunar JavaScript 曆法庫處理西曆轉農曆及八字 -->
+    <title>奇門遁甲排盤系統 - 暗干與入墓修正版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -35,65 +34,36 @@
         .gong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; }
         .gong { height: 130px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
         
-        /* 顏色對應圖中風格 */
-        .bg-blue { background-color: #bbdefb; } /* 4, 2, 8, 6 */
-        .bg-yellow { background-color: #fff9c4; } /* 9, 3, 7, 1 */
-        .bg-white { background-color: #ffffff; } /* 5 */
+        .bg-blue { background-color: #bbdefb; } 
+        .bg-yellow { background-color: #fff9c4; } 
+        .bg-white { background-color: #ffffff; } 
         
         .gong-num { position: absolute; top: 5px; right: 8px; font-size: 14px; color: #999; }
         
-        /* 宮內文字排版 */
-        .gong-data { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr 1fr; 
-            grid-template-rows: 1fr 1fr 1fr; 
-            width: 100%;
-            height: 100%;
-            text-align: center; 
-            align-items: center;
-            font-size: 16px; 
-            color: #111; 
-            z-index: 2; 
-        }
+        /* 宮內文字排版 (3 Column) */
+        .gong-data { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; width: 100%; height: 100%; text-align: center; align-items: center; font-size: 16px; color: #111; z-index: 2; }
         
-        /* 特殊標記顏色 */
-       .red-txt { color: #d32f2f; font-weight: bold; font-size: 14px; }
+        /* 特殊標記與暗干顏色 */
+        .red-txt { color: #d32f2f; font-weight: bold; font-size: 14px; }
         .mark-kong { position: absolute; top: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
         .mark-ma { position: absolute; bottom: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
-        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 6px; top: 35px; font-size: 15px; }
+        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 8px; top: 38px; font-size: 16px; } /* 暗干專屬位 */
         
-        /* 中宮特殊排版 */
         .center-text { text-align: center; font-size: 15px; line-height: 1.6; color: #333; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 基本資訊 Panel -->
     <div class="panel">
-        <div class="panel-header">
-            <span>基本資訊</span>
-            <span>^</span>
-        </div>
+        <div class="panel-header"><span>基本資訊</span></div>
         <div class="panel-body">
             <div class="form-row">
                 <div class="form-left">
-                    <div class="input-group">
-                        <label>日期</label>
-                        <input type="datetime-local" id="dateInput" onchange="autoConvert()">
-                    </div>
-                    <div class="input-group">
-                        <label>農曆</label>
-                        <input type="text" id="lunarText" readonly>
-                    </div>
-                    <div class="input-group">
-                        <label id="prevJqLabel">節氣</label>
-                        <input type="text" id="prevJqText" readonly>
-                    </div>
-                    <div class="input-group">
-                        <label id="nextJqLabel">節氣</label>
-                        <input type="text" id="nextJqText" readonly>
-                    </div>
+                    <div class="input-group"><label>日期</label><input type="datetime-local" id="dateInput" onchange="autoConvert()"></div>
+                    <div class="input-group"><label>農曆</label><input type="text" id="lunarText" readonly></div>
+                    <div class="input-group"><label id="prevJqLabel">節氣</label><input type="text" id="prevJqText" readonly></div>
+                    <div class="input-group"><label id="nextJqLabel">節氣</label><input type="text" id="nextJqText" readonly></div>
                 </div>
                 <div class="form-right">
                     <div class="pillar-box" id="yearPillar">年 --</div>
@@ -102,86 +72,34 @@
                     <div class="pillar-box" id="hourPillar">時 --</div>
                 </div>
             </div>
-            <div class="input-group">
-                <label>備註</label>
-                <input type="text" placeholder="備註">
-            </div>
         </div>
     </div>
 
-    <!-- 隱藏/顯示的微調區 (程式計算所依賴的值) -->
+    <!-- 局數微調區 -->
     <div class="manual-settings">
-        <label>局數:</label>
-        <select id="juType"><option value="陽">陽</option><option value="陰">陰</option></select>
-        <input type="number" id="juNumber" value="1" min="1" max="9" style="width: 40px;">
+        <label>手動定局:</label>
+        <select id="juType"><option value="陽">陽</option><option value="陰" selected>陰</option></select>
+        <input type="number" id="juNumber" value="2" min="1" max="9" style="width: 40px;">
         <label style="margin-left:10px;">時干支:</label>
-        <input type="text" id="manualHourGz" style="width: 50px;" readonly>
-        <button class="calc-btn" onclick="calculate()">手動排盤更新</button>
+        <input type="text" id="manualHourGz" value="戊辰" style="width: 50px;" readonly>
+        <button class="calc-btn" onclick="calculate()">排盤更新</button>
     </div>
 
     <!-- 九宮格 -->
     <div class="gong-grid">
-        <!-- 4 巽 -->
-        <div class="gong bg-blue" id="gong-4">
-            <div class="gong-num">4</div>
-            <div class="green-stem" id="g4-hidden"></div>
-            <div class="gong-data" id="g4-data"></div>
-        </div>
-        <!-- 9 離 -->
-        <div class="gong bg-yellow" id="gong-9">
-            <div class="gong-num">9</div>
-            <div class="green-stem" id="g9-hidden"></div>
-            <div class="gong-data" id="g9-data"></div>
-        </div>
-        <!-- 2 坤 -->
-        <div class="gong bg-blue" id="gong-2">
-            <div class="gong-num">2</div>
-            <div class="green-stem" id="g2-hidden"></div>
-            <div class="gong-data" id="g2-data"></div>
-        </div>
-        
-        <!-- 3 震 -->
-        <div class="gong bg-yellow" id="gong-3">
-            <div class="gong-num">3</div>
-            <div class="green-stem" id="g3-hidden"></div>
-            <div class="gong-data" id="g3-data"></div>
-        </div>
-        <!-- 5 中 -->
-        <div class="gong bg-white" id="gong-5">
-            <div class="center-text" id="g5-data">
-                -- 局<br>-- 旬<br>-- 時
-            </div>
-        </div>
-        <!-- 7 兌 -->
-        <div class="gong bg-yellow" id="gong-7">
-            <div class="gong-num">7</div>
-            <div class="green-stem" id="g7-hidden"></div>
-            <div class="gong-data" id="g7-data"></div>
-        </div>
-        
-        <!-- 8 艮 -->
-        <div class="gong bg-blue" id="gong-8">
-            <div class="gong-num">8</div>
-            <div class="green-stem" id="g8-hidden"></div>
-            <div class="gong-data" id="g8-data"></div>
-        </div>
-        <!-- 1 坎 -->
-        <div class="gong bg-yellow" id="gong-1">
-            <div class="gong-num">1</div>
-            <div class="green-stem" id="g1-hidden"></div>
-            <div class="gong-data" id="g1-data"></div>
-        </div>
-        <!-- 6 乾 -->
-        <div class="gong bg-blue" id="gong-6">
-            <div class="gong-num">6</div>
-            <div class="green-stem" id="g6-hidden"></div>
-            <div class="gong-data" id="g6-data"></div>
-        </div>
+        <div class="gong bg-blue" id="gong-4"><div class="gong-num">4</div><div class="green-stem" id="g4-angan"></div><div class="gong-data" id="g4-data"></div></div>
+        <div class="gong bg-yellow" id="gong-9"><div class="gong-num">9</div><div class="green-stem" id="g9-angan"></div><div class="gong-data" id="g9-data"></div></div>
+        <div class="gong bg-blue" id="gong-2"><div class="gong-num">2</div><div class="green-stem" id="g2-angan"></div><div class="gong-data" id="g2-data"></div></div>
+        <div class="gong bg-yellow" id="gong-3"><div class="gong-num">3</div><div class="green-stem" id="g3-angan"></div><div class="gong-data" id="g3-data"></div></div>
+        <div class="gong bg-white" id="gong-5"><div class="center-text" id="g5-data"></div></div>
+        <div class="gong bg-yellow" id="gong-7"><div class="gong-num">7</div><div class="green-stem" id="g7-angan"></div><div class="gong-data" id="g7-data"></div></div>
+        <div class="gong bg-blue" id="gong-8"><div class="gong-num">8</div><div class="green-stem" id="g8-angan"></div><div class="gong-data" id="g8-data"></div></div>
+        <div class="gong bg-yellow" id="gong-1"><div class="gong-num">1</div><div class="green-stem" id="g1-angan"></div><div class="gong-data" id="g1-data"></div></div>
+        <div class="gong bg-blue" id="gong-6"><div class="gong-num">6</div><div class="green-stem" id="g6-angan"></div><div class="gong-data" id="g6-data"></div></div>
     </div>
 </div>
 
 <script>
-    // 設定預設時間為現在
     window.onload = function() {
         let now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -189,64 +107,33 @@
         autoConvert();
     };
 
-    // 自動轉換八字與節氣
     function autoConvert() {
         let dateStr = document.getElementById('dateInput').value;
         if (!dateStr) return;
-        
         let date = new Date(dateStr);
         let lunar = Lunar.fromDate(date);
         
-        // 取得四柱
-        let yGz = lunar.getYearInGanZhi();
-        let mGz = lunar.getMonthInGanZhi();
-        let dGz = lunar.getDayInGanZhi();
-        let hGz = lunar.getTimeInGanZhi();
+        document.getElementById('yearPillar').innerText = '年 ' + lunar.getYearInGanZhi();
+        document.getElementById('monthPillar').innerText = '月 ' + lunar.getMonthInGanZhi();
+        document.getElementById('dayPillar').innerText = '日 ' + lunar.getDayInGanZhi();
+        document.getElementById('hourPillar').innerText = '時 ' + lunar.getTimeInGanZhi();
+        document.getElementById('manualHourGz').value = lunar.getTimeInGanZhi();
         
-        document.getElementById('yearPillar').innerText = '年 ' + yGz;
-        document.getElementById('monthPillar').innerText = '月 ' + mGz;
-        document.getElementById('dayPillar').innerText = '日 ' + dGz;
-        document.getElementById('hourPillar').innerText = '時 ' + hGz;
-        document.getElementById('manualHourGz').value = hGz;
-        
-        // 取得農曆
         document.getElementById('lunarText').value = lunar.getMonthInChinese() + '月' + lunar.getDayInChinese();
+        document.getElementById('prevJqLabel').innerText = lunar.getPrevJieQi().getName();
+        document.getElementById('prevJqText').value = lunar.getPrevJieQi().getSolar().toYmdHms();
+        document.getElementById('nextJqLabel').innerText = lunar.getNextJieQi().getName();
+        document.getElementById('nextJqText').value = lunar.getNextJieQi().getSolar().toYmdHms();
         
-        // 取得節氣
-        let prevJq = lunar.getPrevJieQi();
-        let nextJq = lunar.getNextJieQi();
-        
-        document.getElementById('prevJqLabel').innerText = prevJq.getName();
-        document.getElementById('prevJqText').value = prevJq.getSolar().toYmdHms();
-        document.getElementById('nextJqLabel').innerText = nextJq.getName();
-        document.getElementById('nextJqText').value = nextJq.getSolar().toYmdHms();
-
-        // 簡易局數推算 (可依據各派別微調，此處採用日支時支推演)
-        // 這裡暫時隨機示範，你可以套用 PDF 的總和除 9 邏輯
-        const BRANCH_NUMS = { "子":1, "丑":2, "寅":3, "卯":4, "辰":5, "巳":6, "午":7, "未":8, "申":9, "酉":10, "戌":11, "亥":12 };
-        let sum = BRANCH_NUMS[yGz[1]] + BRANCH_NUMS[mGz[1]] + lunar.getDay() + BRANCH_NUMS[hGz[1]];
-        let juNum = sum % 9;
-        if(juNum === 0) juNum = 9;
-        
-        // 冬至後陽，夏至後陰 (簡化判斷)
-        let monthNum = lunar.getMonth();
-        let isYin = (monthNum >= 5 && monthNum <= 10) ? '陰' : '陽';
-        
-        document.getElementById('juType').value = isYin;
-        document.getElementById('juNumber').value = juNum;
-        
-        calculate(); // 觸發排盤
+        calculate();
     }
 
-    // 奇門排盤核心邏輯 (繼承自 Step 1-12)
     const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
     const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
     const EARTH_STEM_ORDER = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
     const ORIGINAL_PALACE = {
-        1: { star: '蓬', door: '休' }, 2: { star: '芮', door: '死' },
-        3: { star: '沖', door: '傷' }, 4: { star: '輔', door: '杜' },
-        6: { star: '心', door: '開' }, 7: { star: '柱', door: '惊' },
-        8: { star: '任', door: '生' }, 9: { star: '英', door: '景' }
+        1: { star: '蓬', door: '休' }, 2: { star: '芮', door: '死' }, 3: { star: '沖', door: '傷' }, 4: { star: '輔', door: '杜' },
+        6: { star: '心', door: '開' }, 7: { star: '柱', door: '惊' }, 8: { star: '任', door: '生' }, 9: { star: '英', door: '景' }
     };
     const CLOCKWISE_PALACES = [8, 3, 4, 9, 2, 7, 6, 1]; 
     const COUNTER_CLOCKWISE = [8, 1, 6, 7, 2, 9, 4, 3]; 
@@ -257,7 +144,7 @@
     function calculate() {
         let juType = document.getElementById('juType').value;
         let juNumber = parseInt(document.getElementById('juNumber').value);
-        let hGz = document.getElementById('manualHourGz').value || '己未';
+        let hGz = document.getElementById('manualHourGz').value || '戊辰';
         let tStem = hGz.charAt(0);
         let tBranch = hGz.charAt(1);
 
@@ -267,13 +154,12 @@
         let diff = branchIdx - stemIdx;
         if (diff < 0) diff += 12;
         let xunShouStem = "", xunBranch = "", kongPalaces = [];
-        
-        if (diff === 0) { xunShouStem = "戊"; xunBranch = "子"; kongPalaces = [6]; } // 戌亥
-        else if (diff === 10) { xunShouStem = "己"; xunBranch = "戌"; kongPalaces = [2, 7]; } // 申酉
-        else if (diff === 8) { xunShouStem = "庚"; xunBranch = "申"; kongPalaces = [9, 2]; } // 午未
-        else if (diff === 6) { xunShouStem = "辛"; xunBranch = "午"; kongPalaces = [4]; } // 辰巳
-        else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } // 寅卯
-        else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } // 子丑
+        if (diff === 0) { xunShouStem = "戊"; xunBranch = "子"; kongPalaces = [6]; } 
+        else if (diff === 10) { xunShouStem = "己"; xunBranch = "戌"; kongPalaces = [2, 7]; } 
+        else if (diff === 8) { xunShouStem = "庚"; xunBranch = "申"; kongPalaces = [9, 2]; } 
+        else if (diff === 6) { xunShouStem = "辛"; xunBranch = "午"; kongPalaces = [4]; } 
+        else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
+        else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
         // 排地盤
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
@@ -283,23 +169,18 @@
             if (juType === '陽') currentPalace = currentPalace === 9 ? 1 : currentPalace + 1;
             else currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
         }
-        let original5Stem = earthPan[5];
-        earthPan[2] = earthPan[2] + earthPan[5]; // 寄宮
+        earthPan[2] = earthPan[2] + earthPan[5]; 
 
         // 定值符值使
         let xunShouPalace = 0;
-        for (let p = 1; p <= 9; p++) {
-            if (earthPan[p].includes(xunShouStem)) xunShouPalace = p;
-        }
+        for (let p = 1; p <= 9; p++) { if (earthPan[p].includes(xunShouStem)) xunShouPalace = p; }
         let targetPalace = xunShouPalace === 5 ? 2 : xunShouPalace;
         let zhiFu = ORIGINAL_PALACE[targetPalace].star;
         let zhiShi = ORIGINAL_PALACE[targetPalace].door;
 
         // 排九星
         let timeStemPalace = 0;
-        for (let p = 1; p <= 9; p++) {
-            if (earthPan[p].includes(tStem)) timeStemPalace = p;
-        }
+        for (let p = 1; p <= 9; p++) { if (earthPan[p].includes(tStem)) timeStemPalace = p; }
         if (timeStemPalace === 5) timeStemPalace = 2;
         let starsPan = {};
         let startPalaceIdx = CLOCKWISE_PALACES.indexOf(timeStemPalace);
@@ -337,14 +218,41 @@
         }
 
         // ==========================================
+        // 排暗干 (新增邏輯)
+        // ==========================================
+        let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
+        let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
+        
+        if (anGanStartStem === heavenPan[zhiShiPalace]) {
+            // 例外情況：暗干同宮位天盤一樣 -> 旬首入中宮，陽順陰逆排，中宮上2宮
+            let curr = 5;
+            let tempAnGan = {};
+            let xunShouIdx = EARTH_STEM_ORDER.indexOf(xunShouStem);
+            for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
+                tempAnGan[curr] = EARTH_STEM_ORDER[(xunShouIdx + i) % 9];
+                curr = (juType === '陽') ? (curr === 9 ? 1 : curr + 1) : (curr === 1 ? 9 : curr - 1);
+            }
+            Object.assign(anGanPan, tempAnGan);
+            anGanPan[2] = tempAnGan[5];
+        } else {
+            // 正常情況：時柱天干放八門(值使)宮位
+            let curr = zhiShiPalace;
+            let tempAnGan = {};
+            let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
+            for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
+                tempAnGan[curr] = EARTH_STEM_ORDER[(sIdx + i) % 9];
+                curr = (juType === '陽') ? (curr === 9 ? 1 : curr + 1) : (curr === 1 ? 9 : curr - 1);
+            }
+            Object.assign(anGanPan, tempAnGan);
+            anGanPan[2] = tempAnGan[5];
+        }
+
+        // ==========================================
         // 找神煞 (馬, 空, 刑, 墓, 迫)
         // ==========================================
         let remarks = {1:{}, 2:{}, 3:{}, 4:{}, 6:{}, 7:{}, 8:{}, 9:{}};
-        
-        // 標記空亡
         for (let kp of kongPalaces) remarks[kp].kong = true;
 
-        // 標記馬星
         let maXingPalace = 0;
         if (['亥','卯','未'].includes(tBranch)) maXingPalace = 4;
         else if (['寅','午','戌'].includes(tBranch)) maXingPalace = 2;
@@ -352,40 +260,43 @@
         else if (['申','子','辰'].includes(tBranch)) maXingPalace = 8;
         if(maXingPalace) remarks[maXingPalace].ma = true;
 
-        // 擊刑, 入墓, 門迫 判斷庫
         const JI_XING = { 8:['庚'], 3:['戊'], 4:['壬','癸'], 9:['辛'], 2:['己'] };
         const RU_MU = { 8:['丁','己','庚'], 6:['乙','丙','戊'], 4:['辛','壬'], 2:['乙','癸'] };
         const MEN_PO = { 1:['生','死'], 8:['傷','杜'], 2:['傷','杜'], 9:['休'], 6:['景'], 7:['景'], 3:['開','惊'], 4:['開','惊'] };
 
         for (let p of CLOCKWISE_PALACES) {
             let ts = heavenPan[p], es = earthPan[p], dr = doorsPan[p];
-            // 擊刑
             if ((JI_XING[p] && (JI_XING[p].includes(ts) || JI_XING[p].includes(es))) || (ts === '辛' && es === '辛') || (ts === '壬' && es === '壬')) remarks[p].xing = true;
-            // 入墓
             if (RU_MU[p] && (RU_MU[p].includes(ts) || RU_MU[p].includes(es))) remarks[p].mu = true;
-            // 門迫
             if (MEN_PO[p] && MEN_PO[p].includes(dr)) remarks[p].po = true;
+            
+            // 新增入墓規則：只要神係「符」，就入墓
+            if (godsPan[p] === '符') remarks[p].mu = true; 
         }
 
+        // ==========================================
         // 渲染畫面
+        // ==========================================
         document.getElementById('g5-data').innerHTML = `${juType} ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>${hGz} 時`;
 
         for (let i = 1; i <= 9; i++) {
             if (i === 5) continue;
             
-            // 使用 3 Column Grid 完美還原截圖排位
+            // 寫入暗干 (綠色)
+            document.getElementById(`g${i}-angan`).innerText = anGanPan[i] || '';
+
+            // 3 Column 佈局
             let html = `
                 <span>${godsPan[i]}</span> <span></span> <span>${godsPan[i]}</span>
                 <span>${starsPan[i]}</span> <span class="red-txt">${remarks[i].xing ? '刑' : ''}</span> <span>${heavenPan[i]}</span>
                 <span>${doorsPan[i]}</span> <span class="red-txt">${remarks[i].mu ? '墓' : (remarks[i].po ? '迫' : '')}</span> <span>${earthPan[i]}</span>
             `;
             
-            // 處理浮動神煞 (左下馬星, 左上空亡)
+            // 寫入浮動神煞 (空、馬)
             let extraHTML = "";
             if (remarks[i].kong) extraHTML += `<div class="mark-kong">空</div>`;
             if (remarks[i].ma) extraHTML += `<div class="mark-ma">馬</div>`;
             
-            // 寫入宮位
             document.getElementById(`g${i}-data`).innerHTML = html + extraHTML;
         }
     }

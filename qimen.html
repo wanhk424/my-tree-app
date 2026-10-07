@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 最終完美修正版</title>
+    <title>奇門遁甲排盤系統 - 地盤八神修正版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -41,6 +41,7 @@
         .col-left .star { color: #0066cc; font-size: 15px; }
         .col-left .door { color: #d32f2f; font-size: 16px; }
         
+        .col-right .earth-god { color: #333; font-size: 14px; }
         .col-right .heaven { color: #111; font-size: 16px; }
         .col-right .earth { color: #111; font-size: 16px; }
         
@@ -109,6 +110,7 @@
                                 <div class="red-txt" id="g${p}-mupo"></div>
                             </div>
                             <div class="col-right">
+                                <div class="earth-god" id="g${p}-earthgod"></div>
                                 <div class="heaven" id="g${p}-heaven"></div>
                                 <div class="earth" id="g${p}-earth"></div>
                             </div>
@@ -186,7 +188,7 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 2. 地盤排法 (陰8局逆排 Luo Shu: 8->7->6->1->9->4->3->2, 5寄2)
+        // 2. 地盤排法
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
         let luoshuRev = [8, 7, 6, 1, 9, 4, 3, 2, 5];
         for (let i = 0; i < 9; i++) {
@@ -202,7 +204,7 @@
         let zhiFu = ORIGINAL_PALACE[targetPalace].star;
         let zhiShi = ORIGINAL_PALACE[targetPalace].door;
 
-        // 4. 排八門 (跟時支走，陰局逆數)
+        // 4. 排八門
         let doorsPan = {};
         let xunBranchNum = BRANCHES.indexOf(xunBranch) + 1;
         let timeBranchNum = BRANCHES.indexOf(tBranch) + 1;
@@ -215,7 +217,7 @@
         let doorStartIdx = DOORS_ORDER.indexOf(zhiShi);
         for (let i = 0; i < 8; i++) doorsPan[CLOCKWISE_PALACES[(zhiShiStartIdx + i) % 8]] = DOORS_ORDER[(doorStartIdx + i) % 8];
 
-        // 5. 排九星 (跟地盤時干，若時干為甲則用旬首代之)
+        // 5. 排九星
         let searchStem = (tStem === '甲') ? xunShouStem : tStem;
         let timeStemPalace = 0;
         for (let p = 1; p <= 9; p++) { if (earthPan[p].includes(searchStem)) timeStemPalace = p; }
@@ -225,14 +227,14 @@
         let startStarIdx = STARS_ORDER.indexOf(zhiFu);
         for (let i = 0; i < 8; i++) starsPan[CLOCKWISE_PALACES[(startPalaceIdx + i) % 8]] = STARS_ORDER[(startStarIdx + i) % 8];
 
-        // 6. 排天盤 (1宮地盤干落蓬星宮，順時針)
+        // 6. 排天盤
         let heavenPan = {};
         let pengPalace = Object.keys(starsPan).find(key => starsPan[key] === '蓬');
         let pengIdx = CLOCKWISE_PALACES.indexOf(parseInt(pengPalace));
         let p1Idx = CLOCKWISE_PALACES.indexOf(1);
         for (let i = 0; i < 8; i++) heavenPan[CLOCKWISE_PALACES[(pengIdx + i) % 8]] = earthPan[CLOCKWISE_PALACES[(p1Idx + i) % 8]];
 
-        // 7. 排八神 (由天盤旬首落宮起，陰局逆行)
+        // 7. 排八神 (天盤八神)
         let godsPan = {};
         let heavenXunPalace = Object.keys(heavenPan).find(key => heavenPan[key].includes(xunShouStem));
         let godStartIdx = COUNTER_CLOCKWISE.indexOf(parseInt(heavenXunPalace));
@@ -240,7 +242,15 @@
             godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 排暗干 (以時干起於值使門宮，陰局逆飛)
+        // 7.1 排地盤八神 (地盤八神跟地盤旬首落宮)
+        let earthGodsPan = {};
+        let earthXunPalace = Object.keys(earthPan).find(key => earthPan[key].includes(xunShouStem));
+        let earthGodStartIdx = COUNTER_CLOCKWISE.indexOf(parseInt(earthXunPalace));
+        for (let i = 0; i < 8; i++) {
+            earthGodsPan[COUNTER_CLOCKWISE[(earthGodStartIdx + i) % 8]] = GODS_ORDER[i];
+        }
+
+        // 8. 排暗干
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
         let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
         let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
@@ -262,7 +272,7 @@
             return seq[(idx + step) % 9];
         }
 
-        // 9. 清除並重設神煞 (馬, 空, 刑, 墓, 迫)
+        // 9. 清除並重設神煞
         for(let i=1; i<=9; i++) {
             if(i===5) continue;
             let kEl = document.getElementById(`g${i}-kong`);
@@ -318,6 +328,7 @@
             let godEl = document.getElementById(`g${i}-god`);
             let starEl = document.getElementById(`g${i}-star`);
             let doorEl = document.getElementById(`g${i}-door`);
+            let earthGodEl = document.getElementById(`g${i}-earthgod`);
             let heavenEl = document.getElementById(`g${i}-heaven`);
             let earthEl = document.getElementById(`g${i}-earth`);
 
@@ -325,6 +336,7 @@
             if (godEl) godEl.innerText = godsPan[i] || '';
             if (starEl) starEl.innerText = starsPan[i] || '';
             if (doorEl) doorEl.innerText = doorsPan[i] || '';
+            if (earthGodEl) earthGodEl.innerText = earthGodsPan[i] || '';
             if (heavenEl) heavenEl.innerText = heavenPan[i] || '';
             if (earthEl) earthEl.innerText = earthPan[i] || '';
         }

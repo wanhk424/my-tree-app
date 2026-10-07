@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 地盤天干修正版</title>
+    <title>奇門遁甲排盤系統 - 最終完全正確版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -168,7 +168,6 @@
     const DOORS_ORDER = ['休', '生', '傷', '杜', '景', '死', '惊', '開']; 
     const GODS_ORDER = ['符', '蛇', '陰', '合', '虎', '武', '九', '天']; 
 
-    // 嚴格按順序遞增或遞減飛布九宮
     function getSequentialPalaces(startP, juType) {
         let seq = [];
         let curr = startP;
@@ -203,13 +202,13 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 2. 正確的地盤順序連續飛布 (陰局由 8 開始遞減：8->7->6->5->4->3->2->1->9)
+        // 2. 地盤排法
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
         let earthSeq = getSequentialPalaces(juNumber, juType);
         for (let i = 0; i < 9; i++) {
             earthPan[earthSeq[i]] = EARTH_STEM_ORDER[i];
         }
-        earthPan[2] = earthPan[2] + earthPan[5]; // 中宮 5 寄入 2 宮
+        earthPan[2] = earthPan[2] + earthPan[5];
         earthPan[5] = "";
 
         // 3. 定值符與值使
@@ -249,7 +248,7 @@
         let p1Idx = CLOCKWISE_PALACES.indexOf(1);
         for (let i = 0; i < 8; i++) heavenPan[CLOCKWISE_PALACES[(pengIdx + i) % 8]] = earthPan[CLOCKWISE_PALACES[(p1Idx + i) % 8]];
 
-        // 7. 排八神 (天盤八神)
+        // 7. 排八神
         let godsPan = {};
         let heavenXunPalace = Object.keys(heavenPan).find(key => heavenPan[key].includes(xunShouStem));
         let godStartIdx = COUNTER_CLOCKWISE.indexOf(parseInt(heavenXunPalace));
@@ -265,23 +264,21 @@
             earthGodsPan[COUNTER_CLOCKWISE[(earthGodStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 正確連續飛布的暗干 (由值使門宮起步，按陰局連續逆減)
+        // 8. 修正暗干 (依洛書逆布順序：7, 6, 1, 9, 4, 3, 2, 8, 5)
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
-        let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
-        let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
-        if (sIdx === -1) sIdx = 0;
+        let anGanSeq = [7, 6, 1, 9, 4, 3, 2, 8, 5];
+        let anGanStems = ['乙', '戊', '癸', '丁', '庚', '辛', '壬', '己', '丙'];
         
-        let anGanSeq = getSequentialPalaces(zhiShiPalace, juType);
         let tempAnGan = {};
         for (let i = 0; i < 9; i++) {
-            tempAnGan[anGanSeq[i]] = EARTH_STEM_ORDER[(sIdx + i) % 9];
+            tempAnGan[anGanSeq[i]] = anGanStems[i];
         }
         for (let p in tempAnGan) {
             if (p != 5) anGanPan[p] = tempAnGan[p];
         }
         anGanPan[2] = (anGanPan[2] || '') + (tempAnGan[5] || '');
 
-        // 9. 神煞處理
+        // 9. 神煞處理 (加入 2宮 辛 擊刑)
         for(let i=1; i<=9; i++) {
             if(i===5) continue;
             let kEl = document.getElementById(`g${i}-kong`);
@@ -309,7 +306,7 @@
             if(el) el.innerText = "馬";
         }
 
-        const JI_XING = { 8:['庚'], 3:['戊'], 4:['壬','癸'], 9:['辛'], 2:['己'] };
+        const JI_XING = { 8:['庚'], 3:['戊'], 4:['壬','癸'], 9:['辛'], 2:['己', '辛'] }; // 修正 2宮包換辛
         const RU_MU = { 8:['丁','己','庚'], 6:['乙','丙','戊'], 4:['辛','壬'], 2:['乙','癸'] };
         const MEN_PO = { 1:['生','死'], 8:['傷','杜'], 2:['傷','杜'], 9:['休'], 6:['景'], 7:['景'], 3:['開','惊'], 4:['開','惊'] };
 

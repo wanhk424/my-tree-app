@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 最終正確版</title>
+    <title>奇門遁甲排盤系統 - 最終修正版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -150,7 +150,7 @@
         document.getElementById('prevJqLabel').innerText = prevJq.getName();
         document.getElementById('prevJqText').value = prevJq.getSolar().toYmdHms();
         document.getElementById('nextJqLabel').innerText = nextJq.getName();
-        document.getElementById('nextJqText').value = nextJq.getNextJieQi().getSolar().toYmdHms();
+        document.getElementById('nextJqText').value = nextJq.getSolar().toYmdHms(); // 修正此處
         
         calculate(hGz);
     }
@@ -259,7 +259,7 @@
             earthGodsPan[COUNTER_CLOCKWISE[(earthGodStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 精準修正後的暗干配置（8宮為丙，2宮包埋中宮寄宮為壬己）
+        // 8. 最終確認暗干配置（8宮為丙，2宮為壬己）
         let anGanPan = {
             1: "癸",
             2: "壬己", 

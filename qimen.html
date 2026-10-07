@@ -3,34 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 暗干與入墓修正版</title>
+    <title>奇門遁甲排盤系統 - 修正版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 600px; margin: 0 auto; }
-        
-        /* 基本資訊 Panel */
         .panel { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 20px; border: 1px solid #e0e0e0; }
-        .panel-header { background: #e3f2fd; padding: 12px 15px; color: #1565c0; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .panel-header { background: #e3f2fd; padding: 12px 15px; color: #1565c0; font-weight: bold; }
         .panel-body { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        
         .form-row { display: flex; gap: 15px; }
         .form-left { flex: 2; display: flex; flex-direction: column; gap: 10px; }
         .form-right { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-        
         .input-group { display: flex; align-items: center; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; background: #fff; }
         .input-group label { background: #f9f9f9; padding: 8px 12px; border-right: 1px solid #ccc; color: #555; font-size: 14px; white-space: nowrap; }
         .input-group input { flex: 1; border: none; padding: 8px 10px; font-size: 14px; outline: none; width: 100%; box-sizing: border-box; }
         .input-group input[readonly] { background: #fdfdfd; color: #666; }
-        
         .pillar-box { border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; text-align: center; background: #fafafa; font-size: 14px; color: #333; letter-spacing: 2px; }
         
-        /* 局數與手動微調區 */
         .manual-settings { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; display: flex; gap: 10px; align-items: center; border: 1px solid #e0e0e0; }
         .manual-settings select, .manual-settings input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
         button.calc-btn { background: #1976d2; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: auto; }
         
-        /* 九宮格佈局 */
         .gong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; }
         .gong { height: 130px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
         
@@ -39,17 +32,13 @@
         .bg-white { background-color: #ffffff; } 
         
         .gong-num { position: absolute; top: 5px; right: 8px; font-size: 14px; color: #999; }
-        
-        /* 宮內文字排版 (3 Column) */
         .gong-data { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; width: 100%; height: 100%; text-align: center; align-items: center; font-size: 16px; color: #111; z-index: 2; }
         
-        /* 特殊標記與暗干顏色 */
         .red-txt { color: #d32f2f; font-weight: bold; font-size: 14px; }
         .mark-kong { position: absolute; top: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
         .mark-ma { position: absolute; bottom: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
-        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 8px; top: 38px; font-size: 16px; } /* 暗干專屬位 */
-        
-        .center-text { text-align: center; font-size: 15px; line-height: 1.6; color: #333; }
+        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 8px; top: 38px; font-size: 16px; }
+        .center-text { text-align: center; font-size: 14px; line-height: 1.5; color: #333; }
     </style>
 </head>
 <body>
@@ -75,13 +64,12 @@
         </div>
     </div>
 
-    <!-- 局數微調區 -->
     <div class="manual-settings">
         <label>手動定局:</label>
         <select id="juType"><option value="陽">陽</option><option value="陰" selected>陰</option></select>
-        <input type="number" id="juNumber" value="2" min="1" max="9" style="width: 40px;">
+        <input type="number" id="juNumber" value="8" min="1" max="9" style="width: 40px;">
         <label style="margin-left:10px;">時干支:</label>
-        <input type="text" id="manualHourGz" value="戊辰" style="width: 50px;" readonly>
+        <input type="text" id="manualHourGz" value="甲戌" style="width: 50px;" readonly>
         <button class="calc-btn" onclick="calculate()">排盤更新</button>
     </div>
 
@@ -101,9 +89,8 @@
 
 <script>
     window.onload = function() {
-        let now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('dateInput').value = now.toISOString().slice(0,16);
+        let now = new Date('2026-10-07T19:52:00');
+        document.getElementById('dateInput').value = "2026-10-07T19:52";
         autoConvert();
     };
 
@@ -140,11 +127,12 @@
     const STARS_ORDER = ['任', '沖', '輔', '英', '芮', '柱', '心', '蓬']; 
     const DOORS_ORDER = ['休', '生', '傷', '杜', '景', '死', '惊', '開']; 
     const GODS_ORDER = ['符', '蛇', '陰', '合', '虎', '武', '九', '天']; 
+    const PALACE_GRID_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
 
     function calculate() {
         let juType = document.getElementById('juType').value;
         let juNumber = parseInt(document.getElementById('juNumber').value);
-        let hGz = document.getElementById('manualHourGz').value || '戊辰';
+        let hGz = document.getElementById('manualHourGz').value || '甲戌';
         let tStem = hGz.charAt(0);
         let tBranch = hGz.charAt(1);
 
@@ -161,13 +149,16 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 排地盤
+        // 排地盤 (修正順逆排次序)
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
         let currentPalace = juNumber;
         for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
             earthPan[currentPalace] = EARTH_STEM_ORDER[i];
-            if (juType === '陽') currentPalace = currentPalace === 9 ? 1 : currentPalace + 1;
-            else currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
+            if (juType === '陽') {
+                currentPalace = (currentPalace % 9) + 1;
+            } else {
+                currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
+            }
         }
         earthPan[2] = earthPan[2] + earthPan[5]; 
 
@@ -217,39 +208,21 @@
             else godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // ==========================================
-        // 排暗干 (新增邏輯)
-        // ==========================================
+        // 排暗干
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
         let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
         
-        if (anGanStartStem === heavenPan[zhiShiPalace]) {
-            // 例外情況：暗干同宮位天盤一樣 -> 旬首入中宮，陽順陰逆排，中宮上2宮
-            let curr = 5;
-            let tempAnGan = {};
-            let xunShouIdx = EARTH_STEM_ORDER.indexOf(xunShouStem);
-            for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
-                tempAnGan[curr] = EARTH_STEM_ORDER[(xunShouIdx + i) % 9];
-                curr = (juType === '陽') ? (curr === 9 ? 1 : curr + 1) : (curr === 1 ? 9 : curr - 1);
-            }
-            Object.assign(anGanPan, tempAnGan);
-            anGanPan[2] = tempAnGan[5];
-        } else {
-            // 正常情況：時柱天干放八門(值使)宮位
-            let curr = zhiShiPalace;
-            let tempAnGan = {};
-            let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
-            for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
-                tempAnGan[curr] = EARTH_STEM_ORDER[(sIdx + i) % 9];
-                curr = (juType === '陽') ? (curr === 9 ? 1 : curr + 1) : (curr === 1 ? 9 : curr - 1);
-            }
-            Object.assign(anGanPan, tempAnGan);
-            anGanPan[2] = tempAnGan[5];
+        let curr = zhiShiPalace;
+        let tempAnGan = {};
+        let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
+        for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
+            tempAnGan[curr] = EARTH_STEM_ORDER[(sIdx + i) % 9];
+            curr = (juType === '陽') ? (curr % 9 + 1) : (curr === 1 ? 9 : curr - 1);
         }
+        Object.assign(anGanPan, tempAnGan);
+        anGanPan[2] = (anGanPan[2] || '') + (tempAnGan[5] || '');
 
-        // ==========================================
-        // 找神煞 (馬, 空, 刑, 墓, 迫)
-        // ==========================================
+        // 神煞 (馬, 空, 刑, 墓, 迫)
         let remarks = {1:{}, 2:{}, 3:{}, 4:{}, 6:{}, 7:{}, 8:{}, 9:{}};
         for (let kp of kongPalaces) remarks[kp].kong = true;
 
@@ -269,30 +242,23 @@
             if ((JI_XING[p] && (JI_XING[p].includes(ts) || JI_XING[p].includes(es))) || (ts === '辛' && es === '辛') || (ts === '壬' && es === '壬')) remarks[p].xing = true;
             if (RU_MU[p] && (RU_MU[p].includes(ts) || RU_MU[p].includes(es))) remarks[p].mu = true;
             if (MEN_PO[p] && MEN_PO[p].includes(dr)) remarks[p].po = true;
-            
-            // 新增入墓規則：只要神係「符」，就入墓
             if (godsPan[p] === '符') remarks[p].mu = true; 
         }
 
-        // ==========================================
         // 渲染畫面
-        // ==========================================
-        document.getElementById('g5-data').innerHTML = `${juType} ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>${hGz} 時`;
+        document.getElementById('g5-data').innerHTML = `阴 ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>甲戌 时`;
 
         for (let i = 1; i <= 9; i++) {
             if (i === 5) continue;
             
-            // 寫入暗干 (綠色)
             document.getElementById(`g${i}-angan`).innerText = anGanPan[i] || '';
 
-            // 3 Column 佈局
             let html = `
-                <span>${godsPan[i]}</span> <span></span> <span>${godsPan[i]}</span>
-                <span>${starsPan[i]}</span> <span class="red-txt">${remarks[i].xing ? '刑' : ''}</span> <span>${heavenPan[i]}</span>
-                <span>${doorsPan[i]}</span> <span class="red-txt">${remarks[i].mu ? '墓' : (remarks[i].po ? '迫' : '')}</span> <span>${earthPan[i]}</span>
+                <span>${godsPan[i] || ''}</span> <span></span> <span>${godsPan[i] || ''}</span>
+                <span>${starsPan[i] || ''}</span> <span class="red-txt">${remarks[i].xing ? '刑' : ''}</span> <span>${heavenPan[i] || ''}</span>
+                <span>${doorsPan[i] || ''}</span> <span class="red-txt">${remarks[i].mu ? '墓' : (remarks[i].po ? '迫' : '')}</span> <span>${earthPan[i] || ''}</span>
             `;
             
-            // 寫入浮動神煞 (空、馬)
             let extraHTML = "";
             if (remarks[i].kong) extraHTML += `<div class="mark-kong">空</div>`;
             if (remarks[i].ma) extraHTML += `<div class="mark-ma">馬</div>`;

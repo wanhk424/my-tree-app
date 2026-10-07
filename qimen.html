@@ -21,19 +21,30 @@
         .pillar-box { border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; text-align: center; background: #fafafa; font-size: 14px; color: #333; letter-spacing: 2px; }
         
         .gong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; }
-        .gong { height: 130px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
+        .gong { height: 130px; position: relative; background-color: #fafafa; box-sizing: border-box; }
         
         .bg-blue { background-color: #bbdefb; } 
         .bg-yellow { background-color: #fff9c4; } 
         .bg-white { background-color: #ffffff; } 
         
-        .gong-num { position: absolute; top: 5px; right: 8px; font-size: 14px; color: #999; }
-        .gong-data { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; width: 100%; height: 100%; text-align: center; align-items: center; font-size: 16px; color: #111; z-index: 2; }
+        .gong-num { position: absolute; top: 4px; right: 6px; font-size: 13px; color: #888; z-index: 3; }
+        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 6px; top: 32px; font-size: 15px; z-index: 3; }
+        .mark-kong { position: absolute; top: 2px; left: 4px; color: #d32f2f; font-weight: bold; font-size: 14px; z-index: 3; }
+        .mark-ma { position: absolute; bottom: 2px; left: 4px; color: #d32f2f; font-weight: bold; font-size: 14px; z-index: 3; }
         
-        .red-txt { color: #d32f2f; font-weight: bold; font-size: 14px; }
-        .mark-kong { position: absolute; top: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
-        .mark-ma { position: absolute; bottom: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
-        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 8px; top: 38px; font-size: 16px; }
+        .gong-content { display: flex; justify-content: space-between; align-items: center; height: 100%; padding: 16px 6px 4px 16px; box-sizing: border-box; }
+        .col-left { display: flex; flex-direction: column; align-items: center; justify-content: space-around; height: 100%; font-size: 15px; font-weight: bold; width: 33%; }
+        .col-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 34%; font-size: 13px; }
+        .col-right { display: flex; flex-direction: column; align-items: center; justify-content: space-around; height: 100%; font-size: 16px; font-weight: bold; width: 33%; }
+        
+        .col-left .god { color: #333; font-size: 14px; }
+        .col-left .star { color: #0066cc; font-size: 15px; }
+        .col-left .door { color: #d32f2f; font-size: 16px; }
+        
+        .col-right .heaven { color: #111; font-size: 16px; }
+        .col-right .earth { color: #111; font-size: 16px; }
+        
+        .red-txt { color: #d32f2f; font-weight: bold; font-size: 13px; line-height: 1.2; }
         .center-text { text-align: center; font-size: 14px; line-height: 1.5; color: #333; }
     </style>
 </head>
@@ -64,21 +75,53 @@
     </div>
 
     <!-- 九宮格盤面 -->
-    <div class="gong-grid">
-        <div class="gong bg-blue" id="gong-4"><div class="gong-num">4</div><div class="green-stem" id="g4-angan"></div><div class="gong-data" id="g4-data"></div></div>
-        <div class="gong bg-yellow" id="gong-9"><div class="gong-num">9</div><div class="green-stem" id="g9-angan"></div><div class="gong-data" id="g9-data"></div></div>
-        <div class="gong bg-blue" id="gong-2"><div class="gong-num">2</div><div class="green-stem" id="g2-angan"></div><div class="gong-data" id="g2-data"></div></div>
-        <div class="gong bg-yellow" id="gong-3"><div class="gong-num">3</div><div class="green-stem" id="g3-angan"></div><div class="gong-data" id="g3-data"></div></div>
-        <div class="gong bg-white" id="gong-5"><div class="center-text" id="g5-data"></div></div>
-        <div class="gong bg-yellow" id="gong-7"><div class="gong-num">7</div><div class="green-stem" id="g7-angan"></div><div class="gong-data" id="g7-data"></div></div>
-        <div class="gong bg-blue" id="gong-8"><div class="gong-num">8</div><div class="green-stem" id="g8-angan"></div><div class="gong-data" id="g8-data"></div></div>
-        <div class="gong bg-yellow" id="gong-1"><div class="gong-num">1</div><div class="green-stem" id="g1-angan"></div><div class="gong-data" id="g1-data"></div></div>
-        <div class="gong bg-blue" id="gong-6"><div class="gong-num">6</div><div class="green-stem" id="g6-angan"></div><div class="gong-data" id="g6-data"></div></div>
-    </div>
+    <div class="gong-grid" id="gridContainer"></div>
 </div>
 
 <script>
+    const PALACE_CLASSES = {
+        4: 'bg-blue', 9: 'bg-yellow', 2: 'bg-blue',
+        3: 'bg-yellow', 5: 'bg-white', 7: 'bg-yellow',
+        8: 'bg-blue', 1: 'bg-yellow', 6: 'bg-blue'
+    };
+
+    function initGrid() {
+        let gridHtml = '';
+        let order = [4, 9, 2, 3, 5, 7, 8, 1, 6];
+        for (let p of order) {
+            if (p === 5) {
+                gridHtml += `<div class="gong bg-white" id="gong-5"><div class="gong-num">5</div><div class="center-text" id="g5-data" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;"></div></div>`;
+            } else {
+                gridHtml += `
+                    <div class="gong ${PALACE_CLASSES[p]}" id="gong-${p}">
+                        <div class="gong-num">${p}</div>
+                        <div class="green-stem" id="g${p}-angan"></div>
+                        <div class="mark-kong" id="g${p}-kong"></div>
+                        <div class="mark-ma" id="g${p}-ma"></div>
+                        <div class="gong-content">
+                            <div class="col-left">
+                                <div class="god" id="g${p}-god"></div>
+                                <div class="star" id="g${p}-star"></div>
+                                <div class="door" id="g${p}-door"></div>
+                            </div>
+                            <div class="col-mid">
+                                <div class="red-txt" id="g${p}-xing"></div>
+                                <div class="red-txt" id="g${p}-mupo"></div>
+                            </div>
+                            <div class="col-right">
+                                <div class="heaven" id="g${p}-heaven"></div>
+                                <div class="earth" id="g${p}-earth"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        document.getElementById('gridContainer').innerHTML = gridHtml;
+    }
+
     window.onload = function() {
+        initGrid();
         document.getElementById('dateInput').value = "2026-10-07T19:52";
         autoConvert();
     };
@@ -123,17 +166,6 @@
     const DOORS_ORDER = ['休', '生', '傷', '杜', '景', '死', '惊', '開']; 
     const GODS_ORDER = ['符', '蛇', '陰', '合', '虎', '武', '九', '天']; 
 
-    // 嚴格九宮飛布軌跡 (支援陽順陰逆)
-    function flyPalaces(startPalace, juType) {
-        let order = (juType === '陽') ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1];
-        let idx = order.indexOf(startPalace);
-        let result = [];
-        for (let i = 0; i < 9; i++) {
-            result.push(order[(idx + i) % 9]);
-        }
-        return result;
-    }
-
     function calculate(hGz) {
         let tStem = hGz.charAt(0);
         let tBranch = hGz.charAt(1);
@@ -154,11 +186,11 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 2. 排地盤 (陰局逆排，包含中宮5並寄2宮)
+        // 2. 地盤排法 (陰8局逆排 Luo Shu: 8->7->6->1->9->4->3->2, 5寄2)
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
-        let earthSeq = flyPalaces(juNumber, juType);
+        let luoshuRev = [8, 7, 6, 1, 9, 4, 3, 2, 5];
         for (let i = 0; i < 9; i++) {
-            earthPan[earthSeq[i]] = EARTH_STEM_ORDER[i];
+            earthPan[luoshuRev[i]] = EARTH_STEM_ORDER[i];
         }
         earthPan[2] = earthPan[2] + earthPan[5];
         earthPan[5] = "";
@@ -170,7 +202,7 @@
         let zhiFu = ORIGINAL_PALACE[targetPalace].star;
         let zhiShi = ORIGINAL_PALACE[targetPalace].door;
 
-        // 4. 排八門 (跟時支走)
+        // 4. 排八門 (跟時支走，陰局逆數)
         let doorsPan = {};
         let xunBranchNum = BRANCHES.indexOf(xunBranch) + 1;
         let timeBranchNum = BRANCHES.indexOf(tBranch) + 1;
@@ -183,23 +215,24 @@
         let doorStartIdx = DOORS_ORDER.indexOf(zhiShi);
         for (let i = 0; i < 8; i++) doorsPan[CLOCKWISE_PALACES[(zhiShiStartIdx + i) % 8]] = DOORS_ORDER[(doorStartIdx + i) % 8];
 
-        // 5. 排九星 (跟地盤時干)
+        // 5. 排九星 (跟地盤時干，若時干為甲則用旬首代之)
+        let searchStem = (tStem === '甲') ? xunShouStem : tStem;
         let timeStemPalace = 0;
-        for (let p = 1; p <= 9; p++) { if (earthPan[p].includes(tStem)) timeStemPalace = p; }
+        for (let p = 1; p <= 9; p++) { if (earthPan[p].includes(searchStem)) timeStemPalace = p; }
         if (timeStemPalace === 5) timeStemPalace = 2;
         let starsPan = {};
         let startPalaceIdx = CLOCKWISE_PALACES.indexOf(timeStemPalace);
         let startStarIdx = STARS_ORDER.indexOf(zhiFu);
         for (let i = 0; i < 8; i++) starsPan[CLOCKWISE_PALACES[(startPalaceIdx + i) % 8]] = STARS_ORDER[(startStarIdx + i) % 8];
 
-        // 6. 排天盤
+        // 6. 排天盤 (1宮地盤干落蓬星宮，順時針)
         let heavenPan = {};
         let pengPalace = Object.keys(starsPan).find(key => starsPan[key] === '蓬');
         let pengIdx = CLOCKWISE_PALACES.indexOf(parseInt(pengPalace));
         let p1Idx = CLOCKWISE_PALACES.indexOf(1);
         for (let i = 0; i < 8; i++) heavenPan[CLOCKWISE_PALACES[(pengIdx + i) % 8]] = earthPan[CLOCKWISE_PALACES[(p1Idx + i) % 8]];
 
-        // 7. 排八神
+        // 7. 排八神 (由天盤旬首落宮起，陰局逆行)
         let godsPan = {};
         let heavenXunPalace = Object.keys(heavenPan).find(key => heavenPan[key].includes(xunShouStem));
         let godStartIdx = COUNTER_CLOCKWISE.indexOf(parseInt(heavenXunPalace));
@@ -207,34 +240,55 @@
             godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 排暗干 (以時干起於值使門宮，正確對應九宮飛布)
+        // 8. 排暗干 (以時干起於值使門宮，陰局逆飛)
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
         let anGanStartStem = tStem === '甲' ? xunShouStem : tStem;
         let sIdx = EARTH_STEM_ORDER.indexOf(anGanStartStem);
         if (sIdx === -1) sIdx = 0;
         
-        let anGanSeq = flyPalaces(zhiShiPalace, juType);
         let tempAnGan = {};
         for (let i = 0; i < 9; i++) {
-            let stemIdx = (sIdx + (juType === '陽' ? i : -i + 9)) % 9;
-            if (stemIdx < 0) stemIdx += 9;
-            tempAnGan[anGanSeq[i]] = EARTH_STEM_ORDER[stemIdx];
+            let stemIdx = (sIdx + i) % 9;
+            tempAnGan[luoshurRevAnGan(zhiShiPalace, i)] = EARTH_STEM_ORDER[stemIdx];
         }
         for (let p in tempAnGan) {
             if (p != 5) anGanPan[p] = tempAnGan[p];
         }
         anGanPan[2] = (anGanPan[2] || '') + (tempAnGan[5] || '');
 
-        // 9. 神煞 (馬, 空, 刑, 墓, 迫)
-        let remarks = {1:{}, 2:{}, 3:{}, 4:{}, 6:{}, 7:{}, 8:{}, 9:{}};
-        for (let kp of kongPalaces) remarks[kp].kong = true;
+        function luoshurRevAnGan(startP, step) {
+            let seq = [8, 7, 6, 1, 9, 4, 3, 2, 5];
+            let idx = seq.indexOf(startP);
+            return seq[(idx + step) % 9];
+        }
+
+        // 9. 清除並重設神煞 (馬, 空, 刑, 墓, 迫)
+        for(let i=1; i<=9; i++) {
+            if(i===5) continue;
+            let kEl = document.getElementById(`g${i}-kong`);
+            let mEl = document.getElementById(`g${i}-ma`);
+            let xEl = document.getElementById(`g${i}-xing`);
+            let pEl = document.getElementById(`g${i}-mupo`);
+            if(kEl) kEl.innerText = "";
+            if(mEl) mEl.innerText = "";
+            if(xEl) xEl.innerText = "";
+            if(pEl) pEl.innerText = "";
+        }
+
+        for (let kp of kongPalaces) {
+            let el = document.getElementById(`g${kp}-kong`);
+            if(el) el.innerText = "空";
+        }
 
         let maXingPalace = 0;
         if (['亥','卯','未'].includes(tBranch)) maXingPalace = 4;
         else if (['寅','午','戌'].includes(tBranch)) maXingPalace = 2;
         else if (['巳','酉','丑'].includes(tBranch)) maXingPalace = 6;
         else if (['申','子','辰'].includes(tBranch)) maXingPalace = 8;
-        if(maXingPalace) remarks[maXingPalace].ma = true;
+        if(maXingPalace) {
+            let el = document.getElementById(`g${maXingPalace}-ma`);
+            if(el) el.innerText = "馬";
+        }
 
         const JI_XING = { 8:['庚'], 3:['戊'], 4:['壬','癸'], 9:['辛'], 2:['己'] };
         const RU_MU = { 8:['丁','己','庚'], 6:['乙','丙','戊'], 4:['辛','壬'], 2:['乙','癸'] };
@@ -242,10 +296,17 @@
 
         for (let p of CLOCKWISE_PALACES) {
             let ts = heavenPan[p], es = earthPan[p], dr = doorsPan[p];
-            if ((JI_XING[p] && (JI_XING[p].includes(ts) || JI_XING[p].includes(es))) || (ts === '辛' && es === '辛') || (ts === '壬' && es === '壬')) remarks[p].xing = true;
-            if (RU_MU[p] && (RU_MU[p].includes(ts) || RU_MU[p].includes(es))) remarks[p].mu = true;
-            if (MEN_PO[p] && MEN_PO[p].includes(dr)) remarks[p].po = true;
-            if (godsPan[p] === '符') remarks[p].mu = true; 
+            let xingEl = document.getElementById(`g${p}-xing`);
+            let mupoEl = document.getElementById(`g${p}-mupo`);
+
+            if ((JI_XING[p] && (JI_XING[p].includes(ts) || JI_XING[p].includes(es))) || (ts === '辛' && es === '辛') || (ts === '壬' && es === '壬')) {
+                if (xingEl) xingEl.innerText = "刑";
+            }
+            if ((RU_MU[p] && (RU_MU[p].includes(ts) || RU_MU[p].includes(es))) || godsPan[p] === '符') {
+                if (mupoEl) mupoEl.innerText = "墓";
+            } else if (MEN_PO[p] && MEN_PO[p].includes(dr)) {
+                if (mupoEl) mupoEl.innerText = "迫";
+            }
         }
 
         // 渲染畫面
@@ -253,19 +314,19 @@
 
         for (let i = 1; i <= 9; i++) {
             if (i === 5) continue;
-            document.getElementById(`g${i}-angan`).innerText = anGanPan[i] || '';
+            let anGanEl = document.getElementById(`g${i}-angan`);
+            let godEl = document.getElementById(`g${i}-god`);
+            let starEl = document.getElementById(`g${i}-star`);
+            let doorEl = document.getElementById(`g${i}-door`);
+            let heavenEl = document.getElementById(`g${i}-heaven`);
+            let earthEl = document.getElementById(`g${i}-earth`);
 
-            let html = `
-                <span>${godsPan[i] || ''}</span> <span></span> <span>${godsPan[i] || ''}</span>
-                <span>${starsPan[i] || ''}</span> <span class="red-txt">${remarks[i].xing ? '刑' : ''}</span> <span>${heavenPan[i] || ''}</span>
-                <span>${doorsPan[i] || ''}</span> <span class="red-txt">${remarks[i].mu ? '墓' : (remarks[i].po ? '迫' : '')}</span> <span>${earthPan[i] || ''}</span>
-            `;
-            
-            let extraHTML = "";
-            if (remarks[i].kong) extraHTML += `<div class="mark-kong">空</div>`;
-            if (remarks[i].ma) extraHTML += `<div class="mark-ma">馬</div>`;
-            
-            document.getElementById(`g${i}-data`).innerHTML = html + extraHTML;
+            if (anGanEl) anGanEl.innerText = anGanPan[i] || '';
+            if (godEl) godEl.innerText = godsPan[i] || '';
+            if (starEl) starEl.innerText = starsPan[i] || '';
+            if (doorEl) doorEl.innerText = doorsPan[i] || '';
+            if (heavenEl) heavenEl.innerText = heavenPan[i] || '';
+            if (earthEl) earthEl.innerText = earthPan[i] || '';
         }
     }
 </script>

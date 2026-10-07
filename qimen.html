@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>奇門遁甲排盤系統</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background-color: #f4f4f7; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .input-group { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+        .input-group label { width: 80px; font-weight: bold; }
+        select, input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; flex: 1; font-size: 16px; }
+        button { width: 100%; padding: 12px; background-color: #007aff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:active { background-color: #005bb5; }
+        
+        /* 九宮格 UI */
+        .gong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 20px; }
+        .gong { border: 1px solid #333; height: 100px; display: flex; flex-direction: column; justify-content: space-between; padding: 8px; background-color: #fafafa; font-size: 14px; position: relative; }
+        .gong-number { position: absolute; top: 2px; right: 4px; font-size: 12px; color: #888; }
+        .gong-content { display: flex; justify-content: space-between; align-items: center; height: 100%; text-align: center;}
+        .center-gong { background-color: #fff3cd; align-items: center; justify-content: center; text-align: center; }
+        
+        /* 測試結果區 */
+        .result-panel { margin-top: 20px; padding: 15px; background: #eef; border-radius: 8px; font-size: 15px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>奇門排盤 (第一階段)</h2>
+    
+    <div class="input-group">
+        <label>局數:</label>
+        <select id="juType"><option value="陽">陽局</option><option value="陰">陰局</option></select>
+        <input type="number" id="juNumber" value="3" min="1" max="9">
+    </div>
+    <div class="input-group">
+        <label>時柱天干:</label>
+        <select id="timeStem">
+            <option value="甲">甲</option><option value="乙">乙</option><option value="丙">丙</option>
+            <option value="丁">丁</option><option value="戊">戊</option><option value="己" selected>己</option>
+            <option value="庚">庚</option><option value="辛">辛</option><option value="壬">壬</option><option value="癸">癸</option>
+        </select>
+    </div>
+    <div class="input-group">
+        <label>時柱地支:</label>
+        <select id="timeBranch">
+            <option value="子">子</option><option value="丑">丑</option><option value="寅">寅</option>
+            <option value="卯">卯</option><option value="辰">辰</option><option value="巳">巳</option>
+            <option value="午">午</option><option value="未" selected>未</option><option value="申">申</option>
+            <option value="酉">酉</option><option value="戌">戌</option><option value="亥">亥</option>
+        </select>
+    </div>
+    
+    <button onclick="calculate()">生成排盤</button>
+
+    <div class="result-panel" id="textResult">請按生成排盤...</div>
+
+    <div class="gong-grid" id="grid">
+        <!-- 九宮格 (4, 9, 2) -->
+        <div class="gong" id="gong-4"><span class="gong-number">4 (巽)</span><div class="gong-content" id="g4-data"></div></div>
+        <div class="gong" id="gong-9"><span class="gong-number">9 (離)</span><div class="gong-content" id="g9-data"></div></div>
+        <div class="gong" id="gong-2"><span class="gong-number">2 (坤)</span><div class="gong-content" id="g2-data"></div></div>
+        
+        <!-- 九宮格 (3, 5, 7) -->
+        <div class="gong" id="gong-3"><span class="gong-number">3 (震)</span><div class="gong-content" id="g3-data"></div></div>
+        <div class="gong center-gong" id="gong-5"><span class="gong-number">5 (中)</span><div id="g5-data">中宮</div></div>
+        <div class="gong" id="gong-7"><span class="gong-number">7 (兌)</span><div class="gong-content" id="g7-data"></div></div>
+        
+        <!-- 九宮格 (8, 1, 6) -->
+        <div class="gong" id="gong-8"><span class="gong-number">8 (艮)</span><div class="gong-content" id="g8-data"></div></div>
+        <div class="gong" id="gong-1"><span class="gong-number">1 (坎)</span><div class="gong-content" id="g1-data"></div></div>
+        <div class="gong" id="gong-6"><span class="gong-number">6 (乾)</span><div class="gong-content" id="g6-data"></div></div>
+    </div>
+</div>
+
+<script>
+    const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+    const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+    
+    // 排地盤天干次序
+    const EARTH_STEM_ORDER = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
+    
+    // 原宮對應 (值符星、值使門)
+    const ORIGINAL_PALACE = {
+        1: { star: '蓬', door: '休' }, 2: { star: '芮', door: '死' },
+        3: { star: '沖', door: '傷' }, 4: { star: '輔', door: '杜' },
+        6: { star: '心', door: '開' }, 7: { star: '柱', door: '惊' },
+        8: { star: '任', door: '生' }, 9: { star: '英', door: '景' }
+    };
+
+    // 九星順時針宮位 (8->3->4->9->2->7->6->1)
+    const CLOCKWISE_PALACES = [8, 3, 4, 9, 2, 7, 6, 1];
+    const STARS_ORDER = ['任', '沖', '輔', '英', '芮', '柱', '心', '蓬'];
+
+    function calculate() {
+        const juType = document.getElementById('juType').value;
+        const juNumber = parseInt(document.getElementById('juNumber').value);
+        const tStem = document.getElementById('timeStem').value;
+        const tBranch = document.getElementById('timeBranch').value;
+
+        // Step 02: 找空亡與旬首
+        let stemIdx = STEMS.indexOf(tStem);
+        let branchIdx = BRANCHES.indexOf(tBranch);
+        
+        // 推算旬首
+        let diff = branchIdx - stemIdx;
+        if (diff < 0) diff += 12;
+        let xunShouStem = "";
+        let kongWang = "";
+        
+        if (diff === 0) { xunShouStem = "戊"; kongWang = "戌亥"; } // 甲子旬
+        else if (diff === 10) { xunShouStem = "己"; kongWang = "申酉"; } // 甲戌旬
+        else if (diff === 8) { xunShouStem = "庚"; kongWang = "午未"; } // 甲申旬
+        else if (diff === 6) { xunShouStem = "辛"; kongWang = "辰巳"; } // 甲午旬
+        else if (diff === 4) { xunShouStem = "壬"; kongWang = "寅卯"; } // 甲辰旬
+        else if (diff === 2) { xunShouStem = "癸"; kongWang = "子丑"; } // 甲寅旬
+
+        // Step 03: 排地盤天干
+        let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
+        let currentPalace = juNumber;
+        
+        for (let i = 0; i < EARTH_STEM_ORDER.length; i++) {
+            earthPan[currentPalace] = EARTH_STEM_ORDER[i];
+            if (juType === '陽') {
+                currentPalace = currentPalace === 9 ? 1 : currentPalace + 1;
+            } else {
+                currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
+            }
+        }
+        
+        // 5宮寄放2宮
+        earthPan[2] = earthPan[2] + " " + earthPan[5];
+        let original5Stem = earthPan[5];
+        earthPan[5] = ""; // 清空中宮
+
+        // Step 04: 找旬首落宮、值符、值使
+        let xunShouPalace = 0;
+        for (let p = 1; p <= 9; p++) {
+            if (earthPan[p].includes(xunShouStem)) xunShouPalace = p;
+        }
+        
+        // 如果旬首在5宮，借用2宮的原星原門
+        let targetPalace = xunShouPalace === 5 ? 2 : xunShouPalace;
+        let zhiFu = ORIGINAL_PALACE[targetPalace].star;
+        let zhiShi = ORIGINAL_PALACE[targetPalace].door;
+
+        // Step 05: 排九星 (跟時干走)
+        let timeStemPalace = 0;
+        for (let p = 1; p <= 9; p++) {
+            if (earthPan[p].includes(tStem)) timeStemPalace = p;
+        }
+        // 如果時干在5宮，寄2宮
+        if (timeStemPalace === 5) timeStemPalace = 2;
+
+        let starsPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
+        
+        // 找到時干宮位在順時針陣列的 Index
+        let startPalaceIdx = CLOCKWISE_PALACES.indexOf(timeStemPalace);
+        // 找到值符星在九星順序陣列的 Index
+        let startStarIdx = STARS_ORDER.indexOf(zhiFu);
+
+        // 順時針填入九星
+        for (let i = 0; i < 8; i++) {
+            let pIdx = (startPalaceIdx + i) % 8;
+            let sIdx = (startStarIdx + i) % 8;
+            starsPan[CLOCKWISE_PALACES[pIdx]] = STARS_ORDER[sIdx];
+        }
+
+        // 渲染結果文字
+        let resultHtml = `
+            <strong>基礎資訊：</strong> ${juType}${juNumber}局 | 時段：${tStem}${tBranch}時<br>
+            <strong>Step 2：</strong> 空亡：${kongWang} | 旬首：${xunShouStem} (落 ${xunShouPalace} 宮)<br>
+            <strong>Step 4：</strong> 值符星：天${zhiFu} | 值使門：${zhiShi}門<br>
+            <strong>Step 5：</strong> 值符星 (天${zhiFu}) 放於時干 (${tStem}) 落宮 (${timeStemPalace} 宮)
+        `;
+        document.getElementById('textResult').innerHTML = resultHtml;
+
+        // 渲染九宮格
+        for (let i = 1; i <= 9; i++) {
+            if (i === 5) {
+                document.getElementById('g5-data').innerHTML = `
+                    <div style="font-weight:bold;color:#b00;">值符: ${zhiFu}</div>
+                    <div style="font-weight:bold;color:#b00;">值使: ${zhiShi}</div>
+                    <div>(寄2宮: ${original5Stem})</div>
+                `;
+            } else {
+                let gongContent = `
+                    <div style="color:green; font-weight:bold; font-size:18px;">${starsPan[i] || ''}</div>
+                    <div style="color:#555; font-size:18px;">${earthPan[i]}</div>
+                `;
+                document.getElementById(`g${i}-data`).innerHTML = gongContent;
+            }
+        }
+    }
+
+    // 初始化執行一次
+    calculate();
+</script>
+</body>
+</html>

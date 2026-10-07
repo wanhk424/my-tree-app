@@ -43,11 +43,24 @@
         .gong-num { position: absolute; top: 5px; right: 8px; font-size: 14px; color: #999; }
         
         /* 宮內文字排版 */
-        .gong-data { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 4px 15px; text-align: center; font-size: 16px; color: #111; z-index: 2; }
+        .gong-data { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            grid-template-rows: 1fr 1fr 1fr; 
+            width: 100%;
+            height: 100%;
+            text-align: center; 
+            align-items: center;
+            font-size: 16px; 
+            color: #111; 
+            z-index: 2; 
+        }
         
         /* 特殊標記顏色 */
-        .red-mark { color: #d32f2f; font-weight: bold; font-size: 14px; position: absolute; }
-        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 8px; top: 35px; font-size: 15px; }
+       .red-txt { color: #d32f2f; font-weight: bold; font-size: 14px; }
+        .mark-kong { position: absolute; top: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
+        .mark-ma { position: absolute; bottom: 4px; left: 6px; color: #d32f2f; font-weight: bold; font-size: 15px; }
+        .green-stem { color: #00897b; font-weight: bold; position: absolute; left: 6px; top: 35px; font-size: 15px; }
         
         /* 中宮特殊排版 */
         .center-text { text-align: center; font-size: 15px; line-height: 1.6; color: #333; }
@@ -248,19 +261,19 @@
         let tStem = hGz.charAt(0);
         let tBranch = hGz.charAt(1);
 
-        // 找旬首
+        // 找旬首與空亡
         let stemIdx = STEMS.indexOf(tStem);
         let branchIdx = BRANCHES.indexOf(tBranch);
         let diff = branchIdx - stemIdx;
         if (diff < 0) diff += 12;
-        let xunShouStem = "", xunBranch = "";
+        let xunShouStem = "", xunBranch = "", kongPalaces = [];
         
-        if (diff === 0) { xunShouStem = "戊"; xunBranch = "子"; }
-        else if (diff === 10) { xunShouStem = "己"; xunBranch = "戌"; }
-        else if (diff === 8) { xunShouStem = "庚"; xunBranch = "申"; }
-        else if (diff === 6) { xunShouStem = "辛"; xunBranch = "午"; }
-        else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; }
-        else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; }
+        if (diff === 0) { xunShouStem = "戊"; xunBranch = "子"; kongPalaces = [6]; } // 戌亥
+        else if (diff === 10) { xunShouStem = "己"; xunBranch = "戌"; kongPalaces = [2, 7]; } // 申酉
+        else if (diff === 8) { xunShouStem = "庚"; xunBranch = "申"; kongPalaces = [9, 2]; } // 午未
+        else if (diff === 6) { xunShouStem = "辛"; xunBranch = "午"; kongPalaces = [4]; } // 辰巳
+        else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } // 寅卯
+        else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } // 子丑
 
         // 排地盤
         let earthPan = {1:"", 2:"", 3:"", 4:"", 5:"", 6:"", 7:"", 8:"", 9:""};
@@ -271,7 +284,7 @@
             else currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
         }
         let original5Stem = earthPan[5];
-        earthPan[2] = earthPan[5]; // 簡化：寄宮直接取5宮干
+        earthPan[2] = earthPan[2] + earthPan[5]; // 寄宮
 
         // 定值符值使
         let xunShouPalace = 0;
@@ -323,15 +336,15 @@
             else godsPan[COUNTER_CLOCKWISE[(godStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 神煞 (馬, 空, 刑, 墓)
+        // ==========================================
+        // 找神煞 (馬, 空, 刑, 墓, 迫)
+        // ==========================================
         let remarks = {1:{}, 2:{}, 3:{}, 4:{}, 6:{}, 7:{}, 8:{}, 9:{}};
         
-        let diffKong = BRANCHES.indexOf(tBranch) - STEMS.indexOf(tStem);
-        if (diffKong < 0) diffKong += 12;
-        let kong1="", kong2="";
-        if(diffKong===0) {kong1="戌"; kong2="亥";} // 子丑... 簡化對應宮位
-        // 這裡為還原 UI，直接在特定宮位加上紅字標記
-        // 馬星
+        // 標記空亡
+        for (let kp of kongPalaces) remarks[kp].kong = true;
+
+        // 標記馬星
         let maXingPalace = 0;
         if (['亥','卯','未'].includes(tBranch)) maXingPalace = 4;
         else if (['寅','午','戌'].includes(tBranch)) maXingPalace = 2;
@@ -339,31 +352,41 @@
         else if (['申','子','辰'].includes(tBranch)) maXingPalace = 8;
         if(maXingPalace) remarks[maXingPalace].ma = true;
 
+        // 擊刑, 入墓, 門迫 判斷庫
+        const JI_XING = { 8:['庚'], 3:['戊'], 4:['壬','癸'], 9:['辛'], 2:['己'] };
+        const RU_MU = { 8:['丁','己','庚'], 6:['乙','丙','戊'], 4:['辛','壬'], 2:['乙','癸'] };
+        const MEN_PO = { 1:['生','死'], 8:['傷','杜'], 2:['傷','杜'], 9:['休'], 6:['景'], 7:['景'], 3:['開','惊'], 4:['開','惊'] };
+
+        for (let p of CLOCKWISE_PALACES) {
+            let ts = heavenPan[p], es = earthPan[p], dr = doorsPan[p];
+            // 擊刑
+            if ((JI_XING[p] && (JI_XING[p].includes(ts) || JI_XING[p].includes(es))) || (ts === '辛' && es === '辛') || (ts === '壬' && es === '壬')) remarks[p].xing = true;
+            // 入墓
+            if (RU_MU[p] && (RU_MU[p].includes(ts) || RU_MU[p].includes(es))) remarks[p].mu = true;
+            // 門迫
+            if (MEN_PO[p] && MEN_PO[p].includes(dr)) remarks[p].po = true;
+        }
+
         // 渲染畫面
         document.getElementById('g5-data').innerHTML = `${juType} ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>${hGz} 時`;
 
         for (let i = 1; i <= 9; i++) {
             if (i === 5) continue;
             
-            // 模仿圖片的排版佈局
-            let leftCol = `
-                <span>${godsPan[i]}</span>
-                <span>${starsPan[i]}</span>
-                <span>${doorsPan[i]}</span>
-            `;
-            let rightCol = `
-                <span>${godsPan[i]}</span>
-                <span>${heavenPan[i]}</span>
-                <span>${earthPan[i]}</span>
+            // 使用 3 Column Grid 完美還原截圖排位
+            let html = `
+                <span>${godsPan[i]}</span> <span></span> <span>${godsPan[i]}</span>
+                <span>${starsPan[i]}</span> <span class="red-txt">${remarks[i].xing ? '刑' : ''}</span> <span>${heavenPan[i]}</span>
+                <span>${doorsPan[i]}</span> <span class="red-txt">${remarks[i].mu ? '墓' : (remarks[i].po ? '迫' : '')}</span> <span>${earthPan[i]}</span>
             `;
             
-            let html = leftCol + rightCol;
-            document.getElementById(`g${i}-data`).innerHTML = html;
-            
-            // 處理浮動神煞 (左下馬星, 左上空亡等)
+            // 處理浮動神煞 (左下馬星, 左上空亡)
             let extraHTML = "";
-            if(remarks[i].ma) extraHTML += `<div class="red-mark" style="left:8px; bottom:10px;">馬</div>`;
-            document.getElementById(`g${i}-data`).innerHTML += extraHTML;
+            if (remarks[i].kong) extraHTML += `<div class="mark-kong">空</div>`;
+            if (remarks[i].ma) extraHTML += `<div class="mark-ma">馬</div>`;
+            
+            // 寫入宮位
+            document.getElementById(`g${i}-data`).innerHTML = html + extraHTML;
         }
     }
 </script>

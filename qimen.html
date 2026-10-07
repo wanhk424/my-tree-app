@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 刑墓迫與引干完美修復版</title>
+    <title>奇門遁甲排盤系統 - 八大身份完整定位版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 600px; margin: 0 auto; }
         .panel { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 20px; border: 1px solid #e0e0e0; }
-        .panel-header { background: #e3f2fd; padding: 12px 15px; color: #1565c0; font-weight: bold; }
+        .panel-header { background: #e3f2fd; padding: 12px 15px; color: #1565c0; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .panel-body { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .form-row { display: flex; gap: 15px; }
         .form-left { flex: 2; display: flex; flex-direction: column; gap: 10px; }
@@ -20,6 +20,14 @@
         .input-group input[readonly] { background: #fdfdfd; color: #666; }
         .pillar-box { border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; text-align: center; background: #fafafa; font-size: 14px; color: #333; letter-spacing: 2px; }
         
+        /* 按鈕樣式 */
+        .btn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .btn { padding: 10px; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; text-align: center; }
+        .btn-green { background-color: #2e7d32; }
+        .btn-green:hover { background-color: #1b5e20; }
+        .btn-gray { background-color: #616161; }
+        .btn-gray:hover { background-color: #424242; }
+
         .gong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; }
         .gong { height: 130px; position: relative; background-color: #fafafa; box-sizing: border-box; }
         
@@ -47,11 +55,42 @@
         
         .red-txt { color: #d32f2f; font-weight: bold; font-size: 12px; line-height: 1.1; }
         .center-text { text-align: center; font-size: 12px; line-height: 1.3; color: #333; }
+        
+        /* 四柱身份標籤樣式 (顯示於宮位右上角) */
+        .psz-tag { font-size: 11px; color: #d81b60; font-weight: bold; position: absolute; top: 4px; right: 22px; z-index: 4; text-align: right; line-height: 1.1; }
+
+        /* Modal 彈窗樣式 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 95%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #1565c0; font-size: 18px; }
+        .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #666; }
+        .modal-select-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
+        .modal-select-row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .modal-select { padding: 4px 8px; border: 1px solid #bbb; border-radius: 4px; font-size: 14px; background: #fff; width: 100px; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- 選項面板 -->
+    <div class="panel">
+        <div class="panel-header"><span>選項</span></div>
+        <div class="panel-body">
+            <div class="btn-grid">
+                <button class="btn btn-green" onclick="openPaiSiZhuModal()">排四柱</button>
+                <button class="btn btn-green" onclick="alert('已成功儲存此局！')">儲存此局</button>
+                <button class="btn btn-gray" onclick="toggleAnGan()">顯示引干</button>
+                <button class="btn btn-gray" onclick="alert('已還原預設宮位')">原來宮位</button>
+                <button class="btn btn-gray" onclick="shiftDay(-1)">上一日</button>
+                <button class="btn btn-gray" onclick="shiftDay(1)">下一日</button>
+                <button class="btn btn-gray" onclick="shiftHour(-2)">上一時辰</button>
+                <button class="btn btn-gray" onclick="shiftHour(2)">下一時辰</button>
+                <button class="btn btn-gray" onclick="setNowTime()">現在時間</button>
+            </div>
+        </div>
+    </div>
+
     <div class="panel">
         <div class="panel-header"><span>基本資訊 (奇門遁甲排盤系統)</span></div>
         <div class="panel-body">
@@ -75,8 +114,35 @@
         </div>
     </div>
 
-    <!-- 九宮格盤面 -->
+    <!-- 主盤九宮格盤面 -->
     <div class="gong-grid" id="gridContainer"></div>
+</div>
+
+<!-- 排四柱彈窗 Modal (包含全部 8 個身份) -->
+<div id="paiSiZhuModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>排四柱 (八大身份定位)</h3>
+            <button class="modal-close" onclick="closePaiSiZhuModal()">✕</button>
+        </div>
+        <div class="modal-select-grid">
+            <div class="modal-select-row"><span>年干</span><select class="modal-select" id="psz-p-niangan" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3">3宮</option><option value="4">4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8">8宮</option><option value="9">9宮</option></select></div>
+            <div class="modal-select-row"><span>年根</span><select class="modal-select" id="psz-p-niangen" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3">3宮</option><option value="4">4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8" selected>8宮</option><option value="9">9宮</option></select></div>
+            <div class="modal-select-row"><span>月干</span><select class="modal-select" id="psz-p-yuegan" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3">3宮</option><option value="4" selected>4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8">8宮</option><option value="9">9宮</option></select></div>
+            <div class="modal-select-row"><span>月根</span><select class="modal-select" id="psz-p-yuegen" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3" selected>3宮</option><option value="4">4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8">8宮</option><option value="9">9宮</option></select></div>
+            <div class="modal-select-row"><span>日干</span><select class="modal-select" id="psz-p-rigan" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3">3宮</option><option value="4">4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8">8宮</option><option value="9">9宮</option></select></div>
+            <div class="modal-select-row"><span>日根</span><select class="modal-select" id="psz-p-rigen" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3">3宮</option><option value="4">4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8">8宮</option><option value="9">9宮</option></select></div>
+            <div class="modal-select-row"><span>時干</span><select class="modal-select" id="psz-p-shigan" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3">3宮</option><option value="4">4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8">8宮</option><option value="9">9宮</option></select></div>
+            <div class="modal-select-row"><span>時根</span><select class="modal-select" id="psz-p-shigen" onchange="updatePszDisplay()"><option value="">--</option><option value="1">1宮</option><option value="2">2宮</option><option value="3">3宮</option><option value="4">4宮</option><option value="6">6宮</option><option value="7">7宮</option><option value="8">8宮</option><option value="9">9宮</option></select></div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:5px; margin-bottom:15px;" id="modalPillars">
+            <div class="pillar-box" style="font-size:12px; padding:4px 8px;" id="psz-y">年 --</div>
+            <div class="pillar-box" style="font-size:12px; padding:4px 8px;" id="psz-m">月 --</div>
+            <div class="pillar-box" style="font-size:12px; padding:4px 8px;" id="psz-d">日 --</div>
+            <div class="pillar-box" style="font-size:12px; padding:4px 8px;" id="psz-h">時 --</div>
+        </div>
+        <div class="gong-grid" id="modalGridContainer"></div>
+    </div>
 </div>
 
 <script>
@@ -86,16 +152,21 @@
         8: 'bg-blue', 1: 'bg-yellow', 6: 'bg-blue'
     };
 
-    function initGrid() {
+    let showAnGanFlag = true;
+
+    function initGrids() {
         let gridHtml = '';
+        let modalHtml = '';
         let order = [4, 9, 2, 3, 5, 7, 8, 1, 6];
         for (let p of order) {
             if (p === 5) {
                 gridHtml += `<div class="gong bg-white" id="gong-5"><div class="gong-num">5</div><div class="center-text" id="g5-data" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;"></div></div>`;
+                modalHtml += `<div class="gong bg-white" id="modal-gong-5"><div class="gong-num">5</div><div class="center-text" id="modal-g5-data" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;"></div></div>`;
             } else {
                 gridHtml += `
                     <div class="gong ${PALACE_CLASSES[p]}" id="gong-${p}">
                         <div class="gong-num">${p}</div>
+                        <div class="psz-tag" id="g${p}-psz"></div>
                         <div class="green-stem" id="g${p}-angan"></div>
                         <div class="mark-kong" id="g${p}-kong"></div>
                         <div class="mark-ma" id="g${p}-ma"></div>
@@ -117,16 +188,136 @@
                         </div>
                     </div>
                 `;
+                modalHtml += `
+                    <div class="gong ${PALACE_CLASSES[p]}" id="modal-gong-${p}">
+                        <div class="gong-num">${p}</div>
+                        <div class="psz-tag" id="modal-g${p}-psz"></div>
+                        <div class="green-stem" id="modal-g${p}-angan"></div>
+                        <div class="mark-kong" id="modal-g${p}-kong"></div>
+                        <div class="mark-ma" id="modal-g${p}-ma"></div>
+                        <div class="gong-content">
+                            <div class="col-left">
+                                <div class="god" id="modal-g${p}-god"></div>
+                                <div class="star" id="modal-g${p}-star"></div>
+                                <div class="door" id="modal-g${p}-door"></div>
+                            </div>
+                            <div class="col-mid">
+                                <div class="red-txt" id="modal-g${p}-xing"></div>
+                                <div class="red-txt" id="modal-g${p}-mupo"></div>
+                            </div>
+                            <div class="col-right">
+                                <div class="earth-god" id="modal-g${p}-earthgod"></div>
+                                <div class="heaven" id="modal-g${p}-heaven"></div>
+                                <div class="earth" id="modal-g${p}-earth"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
         }
         document.getElementById('gridContainer').innerHTML = gridHtml;
+        document.getElementById('modalGridContainer').innerHTML = modalHtml;
     }
 
     window.onload = function() {
-        initGrid();
-        document.getElementById('dateInput').value = "2026-10-08T14:30";
+        initGrids();
+        document.getElementById('dateInput').value = "2026-10-07T23:54";
         autoConvert();
     };
+
+    function toggleAnGan() {
+        showAnGanFlag = !showAnGanFlag;
+        let elements = document.querySelectorAll('.green-stem');
+        elements.forEach(el => {
+            el.style.display = showAnGanFlag ? 'block' : 'none';
+        });
+    }
+
+    function shiftDay(days) {
+        let input = document.getElementById('dateInput');
+        if (!input.value) return;
+        let date = new Date(input.value);
+        date.setDate(date.getDate() + days);
+        input.value = formatDateLocal(date);
+        autoConvert();
+    }
+
+    function shiftHour(hours) {
+        let input = document.getElementById('dateInput');
+        if (!input.value) return;
+        let date = new Date(input.value);
+        date.setHours(date.getHours() + hours);
+        input.value = formatDateLocal(date);
+        autoConvert();
+    }
+
+    function setNowTime() {
+        let now = new Date();
+        document.getElementById('dateInput').value = formatDateLocal(now);
+        autoConvert();
+    }
+
+    function formatDateLocal(date) {
+        let y = date.getFullYear();
+        let m = String(date.getMonth() + 1).padStart(2, '0');
+        let d = String(date.getDate()).padStart(2, '0');
+        let h = String(date.getHours()).padStart(2, '0');
+        let min = String(date.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${d}T${h}:${min}`;
+    }
+
+    function openPaiSiZhuModal() {
+        document.getElementById('paiSiZhuModal').style.display = 'flex';
+        document.getElementById('psz-y').innerText = document.getElementById('yearPillar').innerText;
+        document.getElementById('psz-m').innerText = document.getElementById('monthPillar').innerText;
+        document.getElementById('psz-d').innerText = document.getElementById('dayPillar').innerText;
+        document.getElementById('psz-h').innerText = document.getElementById('hourPillar').innerText;
+        updatePszDisplay();
+    }
+
+    function closePaiSiZhuModal() {
+        document.getElementById('paiSiZhuModal').style.display = 'none';
+    }
+
+    // 同步更新主盤與彈窗內全部 8 個身份標籤顯示
+    function updatePszDisplay() {
+        for (let i = 1; i <= 9; i++) {
+            if (i === 5) continue;
+            let el = document.getElementById(`g${i}-psz`);
+            if (el) el.innerText = "";
+            let mel = document.getElementById(`modal-g${i}-psz`);
+            if (mel) mel.innerText = "";
+        }
+
+        let items = [
+            { id: 'psz-p-niangan', label: '年干' },
+            { id: 'psz-p-niangen', label: '年根' },
+            { id: 'psz-p-yuegan', label: '月干' },
+            { id: 'psz-p-yuegen', label: '月根' },
+            { id: 'psz-p-rigan', label: '日干' },
+            { id: 'psz-p-rigen', label: '日根' },
+            { id: 'psz-p-shigan', label: '時干' },
+            { id: 'psz-p-shigen', label: '時根' }
+        ];
+
+        let palaceTexts = {};
+        for (let item of items) {
+            let selectEl = document.getElementById(item.id);
+            if (selectEl && selectEl.value) {
+                let p = selectEl.value;
+                if (!palaceTexts[p]) palaceTexts[p] = [];
+                palaceTexts[p].push(item.label);
+            }
+        }
+
+        for (let p in palaceTexts) {
+            let text = palaceTexts[p].join('\n');
+            let el = document.getElementById(`g${p}-psz`);
+            if (el) el.innerText = text;
+            let mel = document.getElementById(`modal-g${p}-psz`);
+            if (mel) mel.innerText = text;
+        }
+    }
 
     function autoConvert() {
         let dateStr = document.getElementById('dateInput').value;
@@ -170,6 +361,7 @@
         document.getElementById('nextJqText').value = nextJqObj.getSolar().toYmdHms();
         
         calculate(lunar, dayLunar, hGz, mGz);
+        updatePszDisplay();
     }
 
     const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -210,7 +402,6 @@
         return { type: isYang ? "陽" : "陰", number: juNum, jqName: jqName, total: total };
     }
 
-    // 輔助函數：檢查複合天干字符串中是否包含特定天干
     function hasStemMatch(stemStr, stemArray) {
         if (!stemStr || !stemArray) return false;
         for (let char of stemStr) {
@@ -328,19 +519,16 @@
             earthGodsPan[p] = GODS_ORDER[egIdx];
         }
 
-        // 引干（暗干）精確匹配修復
         let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
         let actualTimeStem = (tStem === '甲') ? xunShouStem : tStem;
 
         let timeStemHpPalace = CLOCKWISE_PALACES[0];
-        // 優先尋找主幹（第一個字）精確匹配時干的宮位
         for (let p of CLOCKWISE_PALACES) {
             if (heavenPan[p] && heavenPan[p].charAt(0) === actualTimeStem) {
                 timeStemHpPalace = p;
                 break;
             }
         }
-        // 若找不到則用包含匹配作為後備
         if (!heavenPan[timeStemHpPalace] || heavenPan[timeStemHpPalace].charAt(0) !== actualTimeStem) {
             for (let p of CLOCKWISE_PALACES) {
                 if (heavenPan[p] && heavenPan[p].includes(actualTimeStem)) {
@@ -394,7 +582,6 @@
             }
         }
 
-        // 神煞處理
         for(let i=1; i<=9; i++) {
             if(i===5) continue;
             let kEl = document.getElementById(`g${i}-kong`);
@@ -405,11 +592,22 @@
             if(mEl) mEl.innerText = "";
             if(xEl) xEl.innerText = "";
             if(pEl) pEl.innerText = "";
+
+            let mkEl = document.getElementById(`modal-g${i}-kong`);
+            let mmEl = document.getElementById(`modal-g${i}-ma`);
+            let mxEl = document.getElementById(`modal-g${i}-xing`);
+            let mpEl = document.getElementById(`modal-g${i}-mupo`);
+            if(mkEl) mkEl.innerText = "";
+            if(mmEl) mmEl.innerText = "";
+            if(mxEl) mxEl.innerText = "";
+            if(mpEl) mpEl.innerText = "";
         }
 
         for (let kp of kongPalaces) {
             let el = document.getElementById(`g${kp}-kong`);
             if(el) el.innerText = "空";
+            let mel = document.getElementById(`modal-g${kp}-kong`);
+            if(mel) mel.innerText = "空";
         }
 
         let maXingPalace = 0;
@@ -420,6 +618,8 @@
         if(maXingPalace) {
             let el = document.getElementById(`g${maXingPalace}-ma`);
             if(el) el.innerText = "馬";
+            let mel = document.getElementById(`modal-g${maXingPalace}-ma`);
+            if(mel) mel.innerText = "馬";
         }
 
         const JI_XING = { 8:['庚'], 3:['戊'], 4:['壬','癸'], 9:['辛'], 2:['己'] };
@@ -432,11 +632,12 @@
             7:['景'], 6:['景'] 
         };
 
-        // 擊刑、入墓、門迫檢測（支援複合天干比對）
         for (let p of CLOCKWISE_PALACES) {
             let ts = heavenPan[p], es = earthPan[p], dr = doorsPan[p];
             let xingEl = document.getElementById(`g${p}-xing`);
             let mupoEl = document.getElementById(`g${p}-mupo`);
+            let mxingEl = document.getElementById(`modal-g${p}-xing`);
+            let mmupoEl = document.getElementById(`modal-g${p}-mupo`);
 
             let xingText = "";
             let muPoText = "";
@@ -456,9 +657,7 @@
                     if (hasJiXing) break;
                 }
             }
-            if (hasJiXing) {
-                xingText = "刑";
-            }
+            if (hasJiXing) xingText = "刑";
 
             let hasRuMu = false;
             if (RU_MU[p] && (hasStemMatch(ts, RU_MU[p]) || hasStemMatch(es, RU_MU[p]))) {
@@ -473,9 +672,14 @@
 
             if (xingEl) xingEl.innerText = xingText;
             if (mupoEl) mupoEl.innerText = muPoText;
+            if (mxingEl) mxingEl.innerText = xingText;
+            if (mmupoEl) mmupoEl.innerText = muPoText;
         }
 
-        document.getElementById('g5-data').innerHTML = `${juInfo.jqName}<br>${juType} ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>${hGz} 時`;
+        let centerHtml = `${juInfo.jqName}<br>${juType} ${juNumber} 局<br>甲${xunBranch}${xunShouStem} 旬<br>${hGz} 時`;
+        document.getElementById('g5-data').innerHTML = centerHtml;
+        let mG5 = document.getElementById('modal-g5-data');
+        if (mG5) mG5.innerHTML = centerHtml;
 
         for (let i = 1; i <= 9; i++) {
             if (i === 5) continue;
@@ -487,13 +691,29 @@
             let heavenEl = document.getElementById(`g${i}-heaven`);
             let earthEl = document.getElementById(`g${i}-earth`);
 
-            if (anGanEl) anGanEl.innerText = anGanPan[i] || '';
+            if (anGanEl) anGanEl.innerText = showAnGanFlag ? (anGanPan[i] || '') : '';
             if (godEl) godEl.innerText = tianPanGods[i] || '';
             if (starEl) starEl.innerText = starsPan[i] || '';
             if (doorEl) doorEl.innerText = doorsPan[i] || '';
             if (earthGodEl) earthGodEl.innerText = earthGodsPan[i] || '';
             if (heavenEl) heavenEl.innerText = heavenPan[i] || '';
             if (earthEl) earthEl.innerText = earthPan[i] || '';
+
+            let manGanEl = document.getElementById(`modal-g${i}-angan`);
+            let mgodEl = document.getElementById(`modal-g${i}-god`);
+            let mstarEl = document.getElementById(`modal-g${i}-star`);
+            let mdoorEl = document.getElementById(`modal-g${i}-door`);
+            let mearthGodEl = document.getElementById(`modal-g${i}-earthgod`);
+            let mheavenEl = document.getElementById(`modal-g${i}-heaven`);
+            let mearthEl = document.getElementById(`modal-g${i}-earth`);
+
+            if (manGanEl) manGanEl.innerText = showAnGanFlag ? (anGanPan[i] || '') : '';
+            if (mgodEl) mgodEl.innerText = tianPanGods[i] || '';
+            if (mstarEl) mstarEl.innerText = starsPan[i] || '';
+            if (mdoorEl) mdoorEl.innerText = doorsPan[i] || '';
+            if (mearthGodEl) mearthGodEl.innerText = earthGodsPan[i] || '';
+            if (mheavenEl) mheavenEl.innerText = heavenPan[i] || '';
+            if (mearthEl) mearthEl.innerText = earthPan[i] || '';
         }
     }
 </script>

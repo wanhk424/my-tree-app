@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奇門遁甲排盤系統 - 最終天干對應修正版</title>
+    <title>奇門遁甲排盤系統 - 最終完善版</title>
     <script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
     <style>
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -188,7 +188,7 @@
         else if (diff === 4) { xunShouStem = "壬"; xunBranch = "辰"; kongPalaces = [8, 3]; } 
         else if (diff === 2) { xunShouStem = "癸"; xunBranch = "寅"; kongPalaces = [1, 8]; } 
 
-        // 2. 嚴格對應圖二的正確地盤排法 (陰8局)
+        // 2. 地盤排法
         let earthPan = {
             1: "丙", 
             2: "丁辛", 
@@ -200,7 +200,6 @@
             8: "戊", 
             9: "乙"
         };
-        earthPan[2] = earthPan[2]; // 5宮寄2宮已包含
 
         // 3. 定值符與值使
         let xunShouPalace = 0;
@@ -232,7 +231,7 @@
         let startStarIdx = STARS_ORDER.indexOf(zhiFu);
         for (let i = 0; i < 8; i++) starsPan[CLOCKWISE_PALACES[(startPalaceIdx + i) % 8]] = STARS_ORDER[(startStarIdx + i) % 8];
 
-        // 6. 嚴格對應圖二的天盤天干
+        // 6. 天盤天干
         let heavenPan = {
             1: "丙",
             2: "丁辛",
@@ -260,17 +259,19 @@
             earthGodsPan[COUNTER_CLOCKWISE[(earthGodStartIdx + i) % 8]] = GODS_ORDER[i];
         }
 
-        // 8. 嚴格對應圖二的綠色暗干
-        let anGanPan = {
-            1: "癸",
-            2: "壬",
-            3: "辛",
-            4: "庚",
-            6: "戊",
-            7: "乙",
-            8: "己",
-            9: "丁"
-        };
+        // 8. 暗干排法（中宮 5 的暗干自動寄入 2 宮）
+        let anGanSeq = [7, 6, 1, 9, 4, 3, 2, 8, 5];
+        let anGanStems = ['乙', '戊', '癸', '丁', '庚', '辛', '壬', '己', '丙'];
+        let tempAnGan = {};
+        for (let i = 0; i < 9; i++) {
+            tempAnGan[anGanSeq[i]] = anGanStems[i];
+        }
+        let anGanPan = {1:"", 2:"", 3:"", 4:"", 6:"", 7:"", 8:"", 9:""};
+        for (let p in tempAnGan) {
+            if (p != '5') anGanPan[p] = tempAnGan[p];
+        }
+        // 中宮 5 的暗干（丙）寄入 2 宮，與 2 宮本身的暗干（壬）組合
+        anGanPan[2] = (tempAnGan[2] || '') + (tempAnGan[5] || '');
 
         // 9. 神煞處理
         for(let i=1; i<=9; i++) {

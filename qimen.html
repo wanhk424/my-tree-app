@@ -546,13 +546,15 @@
             let p = CLOCKWISE_PALACES[i];
             let sourceIdx = (i - shift + 8) % 8;
             let sourceP = CLOCKWISE_PALACES[sourceIdx];
-            testAnGan[p] = heavenPan[sourceP] ? heavenPan[sourceP].charAt(0) : '';
+            // 【修正】：刪除 .charAt(0)，保留完整天干組合（例如「乙癸」一齊過）
+            testAnGan[p] = heavenPan[sourceP] ? heavenPan[sourceP] : '';
         }
 
         let hasConflict = false;
         for (let p of CLOCKWISE_PALACES) {
             let hStem = heavenPan[p] ? heavenPan[p].charAt(0) : '';
-            let aStem = testAnGan[p] || '';
+            // 【修正】：判斷伏吟/衝突時，只需對比第一個字
+            let aStem = testAnGan[p] ? testAnGan[p].charAt(0) : '';
             if (aStem && hStem && aStem === hStem) {
                 hasConflict = true;
                 break;
@@ -663,16 +665,20 @@
                 hasRuMu = true;
             }
 
+            // 【修正】：拆開判斷，將結果放入 Array
+            let muPoArr = [];
             if (hasRuMu) {
-                muPoText = "墓";
-            } else if (MEN_PO[p] && MEN_PO[p].includes(dr)) {
-                muPoText = "迫";
+                muPoArr.push("墓");
+            }
+            if (MEN_PO[p] && MEN_PO[p].includes(dr)) {
+                muPoArr.push("迫");
             }
 
             if (xingEl) xingEl.innerText = xingText;
-            if (mupoEl) mupoEl.innerText = muPoText;
+            // 【修正】：用 innerHTML 配合 <br>，如果同時有「墓」同「迫」，會自動上下分行顯示
+            if (mupoEl) mupoEl.innerHTML = muPoArr.join("<br>");
             if (mxingEl) mxingEl.innerText = xingText;
-            if (mmupoEl) mmupoEl.innerText = muPoText;
+            if (mmupoEl) mmupoEl.innerHTML = muPoArr.join("<br>");
         }
 
         // 中宮顯示：節氣、陰陽局、旬、時辰、值符星、值使門
